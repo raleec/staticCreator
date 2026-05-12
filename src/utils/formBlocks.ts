@@ -192,7 +192,7 @@ export function registerFormBlocks(editor: Editor): void {
     category: 'Forms',
     content: `<div style="${FIELD_WRAP}">
   <label style="${LABEL_STYLE}">Select</label>
-  <select name="selectField" style="${INPUT_STYLE}appearance:none;background:#fff;">
+  <select name="selectField" style="${INPUT_STYLE};appearance:none;background:#fff;">
     <option value="">Choose an option…</option>
     <option value="option1">Option 1</option>
     <option value="option2">Option 2</option>

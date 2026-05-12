@@ -250,7 +250,10 @@ ${graphFetchLines}
         var successMessage  = form.getAttribute('data-success-message') || 'Form submitted successfully!';
         var successRedirect = form.getAttribute('data-success-redirect') || '';
 
-        // Collect form field values – preserve multiple values (e.g. checkboxes)
+        // Collect form field values.
+        // When multiple inputs share the same name (e.g. checkboxes), the value
+        // is first stored as a scalar and promoted to an array on subsequent
+        // entries – mirrors standard HTML multi-value field behaviour.
         var body = {};
         new FormData(form).forEach(function(val, key) {
           if (Object.prototype.hasOwnProperty.call(body, key)) {
@@ -275,7 +278,7 @@ ${graphFetchLines}
               var tokenResp = await msalInstance.acquireTokenSilent({ scopes: ${scopesJson}, account: accounts[0] });
               headers['Authorization'] = 'Bearer ' + tokenResp.accessToken;
             } catch(tokenErr) {
-              console.warn('[API Form] Silent token acquisition failed:', tokenErr);
+              console.warn('[API Form] Could not acquire token silently – you may need to sign in again.', tokenErr);
             }
           }
         }
@@ -294,11 +297,15 @@ ${graphFetchLines}
               form.reset();
             }
           } else {
-            alert('Submission failed (HTTP ' + resp.status + '). Please try again.');
+            var statusMsg = resp.status === 401 ? 'Unauthorized – please sign in and try again.'
+                          : resp.status === 403 ? 'Forbidden – you do not have permission to submit this form.'
+                          : resp.status === 400 ? 'Bad request – please check your input and try again.'
+                          : 'Submission failed (HTTP ' + resp.status + '). Please try again.';
+            alert(statusMsg);
           }
         } catch(fetchErr) {
           console.error('[API Form] Submission error:', fetchErr);
-          alert('An error occurred. Please try again.');
+          alert('A network error occurred. Please check your connection and try again.');
         } finally {
           if (submitBtn) submitBtn.disabled = false;
         }
