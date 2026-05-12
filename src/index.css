@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+/* GrapesJS custom overrides */
+.gjs-editor {
+  font-family: inherit;
+}
+.gjs-pn-panel {
+  border: none;
+}
