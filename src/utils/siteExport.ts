@@ -128,7 +128,7 @@ function buildSwaConfig(site: Site): string {
       'Referrer-Policy': 'strict-origin-when-cross-origin',
     },
     mimeTypes: {
-      '.json': 'text/json',
+      '.json': 'application/json',
     },
   };
   return JSON.stringify(config, null, 2);
@@ -157,7 +157,14 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${pageName}</title>
-  <script src="https://alcdn.msauth.net/browser/4.0.0/js/msal-browser.min.js"></script>
+  <!--
+    MSAL Browser v5 – bundle @azure/msal-browser with your build tool or use the
+    CDN URL below with a Subresource Integrity (SRI) hash appropriate for your
+    chosen release: https://github.com/AzureAD/microsoft-authentication-library-for-js/releases
+  -->
+  <script src="https://alcdn.msauth.net/browser/5.10.0/js/msal-browser.min.js"
+    integrity="sha384-REPLACE_WITH_ACTUAL_SRI_HASH_FOR_YOUR_VERSION"
+    crossorigin="anonymous"></script>
 </head>
 <body>
 ${bodyHtml}
