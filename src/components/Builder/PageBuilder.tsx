@@ -5,6 +5,7 @@ import 'grapesjs/dist/css/grapes.min.css';
 import { ArrowLeft, Save, Eye, EyeOff, Settings } from 'lucide-react';
 import { useSites } from '../../contexts/SiteContext';
 import ConfigModal from '../Configuration/ConfigModal';
+import { registerFormBlocks } from '../../utils/formBlocks';
 import type { AzureConfig } from '../../types';
 
 interface PageBuilderProps {
@@ -222,6 +223,9 @@ export default function PageBuilder({ siteId, pageId, onBack }: PageBuilderProps
     document.addEventListener('keydown', handleKeyDown);
 
     editorRef.current = editor;
+
+    // Register form blocks and component types
+    registerFormBlocks(editor);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
       editor.destroy();
