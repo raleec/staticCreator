@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import type { Site, SiteExportBundle } from '../types';
+import type { Site, SiteExportBundle, AzureCloud } from '../types';
 
 const EXPORT_VERSION = '1.0';
 
@@ -135,8 +135,21 @@ function buildSwaConfig(site: Site): string {
 }
 
 /**
+ * Returns the Microsoft Graph API base URL for the given Azure cloud.
+ */
+function getGraphApiBase(cloud: AzureCloud): string {
+  switch (cloud) {
+    case 'government': return 'https://graph.microsoft.us/v1.0';
+    case 'dod':        return 'https://dod-graph.microsoft.us/v1.0';
+    case 'china':      return 'https://microsoftgraph.chinacloudapi.cn/v1.0';
+    default:           return 'https://graph.microsoft.com/v1.0';
+  }
+}
+
+/**
  * Wraps the GrapesJS HTML output in a full standalone HTML page including
- * the MSAL authentication bootstrap.
+ * the MSAL authentication bootstrap, page-metadata management and REST-API
+ * form submission logic.
  */
 function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
   let bodyHtml = '<p>Empty page</p>';
@@ -148,8 +161,34 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
     // gjsData is not yet populated – use placeholder
   }
 
-  const { tenantId, clientId, redirectUri, cloud } = site.azureConfig;
+  const { tenantId, clientId, redirectUri, cloud, scopes, metadataFields, graphApiQueries } =
+    site.azureConfig;
   const authorityBase = cloud === 'commercial' ? 'login.microsoftonline.com' : 'login.microsoftonline.us';
+  const graphBase     = getGraphApiBase(cloud);
+
+  // ── Static metadata injection ─────────────────────────────────────────────
+  const staticMetadataLines = (metadataFields ?? [])
+    .filter((f) => f.key)
+    .map((f) => `  __pageMetadata[${JSON.stringify(f.key)}] = ${JSON.stringify(f.value)};`)
+    .join('\n');
+
+  // ── Graph API fetch calls ─────────────────────────────────────────────────
+  const graphFetchLines = (graphApiQueries ?? [])
+    .filter((q) => q.name && q.endpoint)
+    .map((q, idx) => {
+      const params: string[] = [];
+      if (q.select) params.push(`$select=${encodeURIComponent(q.select)}`);
+      if (q.filter) params.push(`$filter=${encodeURIComponent(q.filter)}`);
+      const qs = params.length ? '?' + params.join('&') : '';
+      // Use an indexed variable name to avoid invalid JS identifiers from query.name
+      return `  try {
+    var __resp${idx} = await fetch(${JSON.stringify(graphBase + q.endpoint + qs)}, { headers: __headers });
+    __pageMetadata[${JSON.stringify(q.name)}] = await __resp${idx}.json();
+  } catch(__e) { console.warn('Graph query ${q.name} failed:', __e); }`;
+    })
+    .join('\n');
+
+  const scopesJson = JSON.stringify(scopes?.length ? scopes : ['User.Read']);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -169,8 +208,113 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
 <body>
 ${bodyHtml}
 <script>
-  // MSAL Authentication Bootstrap
-  const msalConfig = {
+  // ── Page Metadata Store ────────────────────────────────────────────────────
+  var __pageMetadata = {};
+
+${staticMetadataLines ? staticMetadataLines + '\n' : ''}
+  // ── Graph API Fetch (called after MSAL token acquisition) ──────────────────
+  async function __fetchGraphMetadata(accessToken) {
+    var __headers = { Authorization: 'Bearer ' + accessToken };
+${graphFetchLines}
+    __prefillFormFields();
+  }
+
+  // ── Metadata Pre-fill for Form Fields ─────────────────────────────────────
+  // Reads data-metadata-prefill attributes and sets input values.
+  // Supports dot-notation keys, e.g. "currentUser.mail".
+  function __resolvePath(key) {
+    return key.split('.').reduce(function(obj, k) { return obj != null ? obj[k] : undefined; }, __pageMetadata);
+  }
+  function __prefillFormFields() {
+    document.querySelectorAll('[data-metadata-prefill]').forEach(function(el) {
+      var key = el.getAttribute('data-metadata-prefill');
+      if (!key) return;
+      var val = __resolvePath(key);
+      if (val !== undefined && val !== null) {
+        el.value = typeof val === 'object' ? JSON.stringify(val) : String(val);
+      }
+    });
+  }
+
+  // ── REST API Form Submission Handler ──────────────────────────────────────
+  function __initFormHandlers() {
+    document.querySelectorAll('[data-api-form]').forEach(function(form) {
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        var url = form.getAttribute('data-api-url');
+        if (!url) { console.warn('[API Form] data-api-url is not set on this form.'); return; }
+
+        var method          = form.getAttribute('data-api-method') || 'POST';
+        var includeAuth     = form.getAttribute('data-auth-header') !== 'false';
+        var metadataInject  = (form.getAttribute('data-metadata-inject') || '').split(',').map(function(k) { return k.trim(); }).filter(Boolean);
+        var successMessage  = form.getAttribute('data-success-message') || 'Form submitted successfully!';
+        var successRedirect = form.getAttribute('data-success-redirect') || '';
+
+        // Collect form field values.
+        // When multiple inputs share the same name (e.g. checkboxes), the value
+        // is first stored as a scalar and promoted to an array on subsequent
+        // entries – mirrors standard HTML multi-value field behaviour.
+        var body = {};
+        new FormData(form).forEach(function(val, key) {
+          if (Object.prototype.hasOwnProperty.call(body, key)) {
+            body[key] = [].concat(body[key], val);
+          } else {
+            body[key] = val;
+          }
+        });
+
+        // Inject metadata values (supports dot-notation)
+        metadataInject.forEach(function(key) {
+          var val = __resolvePath(key);
+          if (val !== undefined) body[key] = val;
+        });
+
+        // Build request headers
+        var headers = { 'Content-Type': 'application/json' };
+        if (includeAuth) {
+          var accounts = msalInstance.getAllAccounts();
+          if (accounts.length > 0) {
+            try {
+              var tokenResp = await msalInstance.acquireTokenSilent({ scopes: ${scopesJson}, account: accounts[0] });
+              headers['Authorization'] = 'Bearer ' + tokenResp.accessToken;
+            } catch(tokenErr) {
+              console.warn('[API Form] Could not acquire token silently – you may need to sign in again.', tokenErr);
+            }
+          }
+        }
+
+        // Disable submit button during request
+        var submitBtn = form.querySelector('[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+          var resp = await fetch(url, { method: method, headers: headers, body: JSON.stringify(body) });
+          if (resp.ok) {
+            if (successRedirect) {
+              window.location.href = successRedirect;
+            } else {
+              alert(successMessage);
+              form.reset();
+            }
+          } else {
+            var statusMsg = resp.status === 401 ? 'Unauthorized – please sign in and try again.'
+                          : resp.status === 403 ? 'Forbidden – you do not have permission to submit this form.'
+                          : resp.status === 400 ? 'Bad request – please check your input and try again.'
+                          : 'Submission failed (HTTP ' + resp.status + '). Please try again.';
+            alert(statusMsg);
+          }
+        } catch(fetchErr) {
+          console.error('[API Form] Submission error:', fetchErr);
+          alert('A network error occurred. Please check your connection and try again.');
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+    });
+  }
+
+  // ── MSAL Authentication Bootstrap ─────────────────────────────────────────
+  var msalConfig = {
     auth: {
       clientId: '${clientId}',
       authority: 'https://${authorityBase}/${tenantId}',
@@ -178,13 +322,35 @@ ${bodyHtml}
     },
     cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false },
   };
-  const msalInstance = new msal.PublicClientApplication(msalConfig);
-  msalInstance.initialize().then(() => {
-    msalInstance.handleRedirectPromise().then((response) => {
-      if (response) {
-        console.log('MSAL login response received:', response.account?.username);
+  var msalInstance = new msal.PublicClientApplication(msalConfig);
+  msalInstance.initialize().then(async function() {
+    var response = await msalInstance.handleRedirectPromise();
+    if (response) {
+      console.log('MSAL login response received:', response.account?.username);
+    }
+
+    // If a user is already signed in, fetch Graph metadata
+    var accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      try {
+        var tokenResponse = await msalInstance.acquireTokenSilent({ scopes: ${scopesJson}, account: accounts[0] });
+        await __fetchGraphMetadata(tokenResponse.accessToken);
+      } catch(silentErr) {
+        console.warn('[MSAL] Could not acquire token silently:', silentErr);
+        // Still prefill fields that have static metadata
+        __prefillFormFields();
       }
-    });
+    } else {
+      // No authenticated user yet – still apply static metadata prefills
+      __prefillFormFields();
+    }
+  });
+
+  // Initialise form handlers and static metadata prefills once the DOM is ready.
+  // (Graph API prefills happen later, inside __fetchGraphMetadata.)
+  document.addEventListener('DOMContentLoaded', function() {
+    __initFormHandlers();
+    __prefillFormFields();
   });
 </script>
 </body>

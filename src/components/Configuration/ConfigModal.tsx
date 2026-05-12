@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { X, ChevronDown } from 'lucide-react';
-import type { AzureConfig, AzureCloud } from '../../types';
+import { X, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import type { AzureConfig, AzureCloud, GraphApiQuery, MetadataField } from '../../types';
 import { DEFAULT_AZURE_CONFIG } from '../../contexts/SiteContext';
 import { AZURE_REGIONS, CLOUD_LABELS, getAuthorityUrl } from '../../utils/azureRegions';
 
@@ -32,7 +32,7 @@ export default function ConfigModal({
   const [config, setConfig] = useState<AzureConfig>(
     initialConfig ?? DEFAULT_AZURE_CONFIG,
   );
-  const [activeTab, setActiveTab] = useState<'general' | 'auth' | 'region'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'auth' | 'region' | 'forms'>('general');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   function updateConfig<K extends keyof AzureConfig>(key: K, value: AzureConfig[K]) {
@@ -99,7 +99,7 @@ export default function ConfigModal({
 
         {/* Tabs */}
         <div className="flex border-b px-6">
-          {(['general', 'auth', 'region'] as const).map((tab) => (
+          {(['general', 'auth', 'region', 'forms'] as const).map((tab) => (
             <button key={tab} className={tabClass(tab)} onClick={() => setActiveTab(tab)}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
@@ -309,6 +309,190 @@ export default function ConfigModal({
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </>
+          )}
+
+          {/* ── Forms Tab ───────────────────────────────────────────────────── */}
+          {activeTab === 'forms' && (
+            <>
+              {/* Static Metadata */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Static Metadata Fields</p>
+                    <p className="text-xs text-gray-400">
+                      Key/value pairs injected into API form requests and available for field pre-fill.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated: MetadataField[] = [
+                        ...(config.metadataFields ?? []),
+                        { key: '', value: '' },
+                      ];
+                      updateConfig('metadataFields', updated);
+                    }}
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium shrink-0"
+                  >
+                    <Plus className="w-3 h-3" /> Add Field
+                  </button>
+                </div>
+                {(config.metadataFields ?? []).length === 0 ? (
+                  <p className="text-xs text-gray-400 italic py-1">No static metadata fields configured.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {(config.metadataFields ?? []).map((field, i) => (
+                      <div key={i} className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          value={field.key}
+                          onChange={(e) => {
+                            const updated = [...(config.metadataFields ?? [])];
+                            updated[i] = { ...updated[i], key: e.target.value };
+                            updateConfig('metadataFields', updated);
+                          }}
+                          placeholder="key"
+                          className={`${inputCls(false)} flex-1`}
+                        />
+                        <input
+                          type="text"
+                          value={field.value}
+                          onChange={(e) => {
+                            const updated = [...(config.metadataFields ?? [])];
+                            updated[i] = { ...updated[i], value: e.target.value };
+                            updateConfig('metadataFields', updated);
+                          }}
+                          placeholder="value"
+                          className={`${inputCls(false)} flex-1`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateConfig(
+                              'metadataFields',
+                              (config.metadataFields ?? []).filter((_, idx) => idx !== i),
+                            );
+                          }}
+                          className="p-1 text-red-400 hover:text-red-600 shrink-0"
+                          aria-label="Remove field"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Graph API Queries */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Graph API Queries</p>
+                    <p className="text-xs text-gray-400">
+                      Fetched on page load after authentication. Results are stored by{' '}
+                      <span className="font-mono">name</span> and usable in form metadata injection
+                      (e.g.{' '}
+                      <span className="font-mono">currentUser.mail</span>).
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated: GraphApiQuery[] = [
+                        ...(config.graphApiQueries ?? []),
+                        { name: '', endpoint: '/me', select: '', filter: '' },
+                      ];
+                      updateConfig('graphApiQueries', updated);
+                    }}
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium shrink-0"
+                  >
+                    <Plus className="w-3 h-3" /> Add Query
+                  </button>
+                </div>
+                {(config.graphApiQueries ?? []).length === 0 ? (
+                  <p className="text-xs text-gray-400 italic py-1">No Graph API queries configured.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {(config.graphApiQueries ?? []).map((query, i) => (
+                      <div
+                        key={i}
+                        className="border border-gray-200 rounded-lg p-3 bg-gray-50 space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Query {i + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateConfig(
+                                'graphApiQueries',
+                                (config.graphApiQueries ?? []).filter((_, idx) => idx !== i),
+                              );
+                            }}
+                            className="text-red-400 hover:text-red-600"
+                            aria-label="Remove query"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={query.name}
+                          onChange={(e) => {
+                            const updated = [...(config.graphApiQueries ?? [])];
+                            updated[i] = { ...updated[i], name: e.target.value };
+                            updateConfig('graphApiQueries', updated);
+                          }}
+                          placeholder="Name (e.g. currentUser)"
+                          className={inputCls(false)}
+                        />
+                        <input
+                          type="text"
+                          value={query.endpoint}
+                          onChange={(e) => {
+                            const updated = [...(config.graphApiQueries ?? [])];
+                            updated[i] = { ...updated[i], endpoint: e.target.value };
+                            updateConfig('graphApiQueries', updated);
+                          }}
+                          placeholder="Endpoint (e.g. /me or /me/memberOf)"
+                          className={inputCls(false)}
+                        />
+                        <input
+                          type="text"
+                          value={query.select ?? ''}
+                          onChange={(e) => {
+                            const updated = [...(config.graphApiQueries ?? [])];
+                            updated[i] = {
+                              ...updated[i],
+                              select: e.target.value || undefined,
+                            };
+                            updateConfig('graphApiQueries', updated);
+                          }}
+                          placeholder="$select fields (optional, e.g. displayName,mail)"
+                          className={inputCls(false)}
+                        />
+                        <input
+                          type="text"
+                          value={query.filter ?? ''}
+                          onChange={(e) => {
+                            const updated = [...(config.graphApiQueries ?? [])];
+                            updated[i] = {
+                              ...updated[i],
+                              filter: e.target.value || undefined,
+                            };
+                            updateConfig('graphApiQueries', updated);
+                          }}
+                          placeholder="$filter expression (optional)"
+                          className={inputCls(false)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}
