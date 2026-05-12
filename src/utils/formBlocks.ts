@@ -163,7 +163,7 @@ export function registerFormBlocks(editor: Editor): void {
   </div>
   <div style="${FIELD_WRAP}">
     <label style="${LABEL_STYLE}">Message</label>
-    <textarea name="message" rows="4" placeholder="Your message..." style="${INPUT_STYLE}resize:vertical;"></textarea>
+    <textarea name="message" rows="4" placeholder="Your message..." style="${INPUT_STYLE};resize:vertical;"></textarea>
   </div>
   <button type="submit" style="width:100%;padding:10px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:.9rem;">Submit</button>
 </form>`,
@@ -205,7 +205,7 @@ export function registerFormBlocks(editor: Editor): void {
     category: 'Forms',
     content: `<div style="${FIELD_WRAP}">
   <label style="${LABEL_STYLE}">Message</label>
-  <textarea name="message" rows="4" placeholder="Enter your message…" style="${INPUT_STYLE}resize:vertical;"></textarea>
+  <textarea name="message" rows="4" placeholder="Enter your message…" style="${INPUT_STYLE};resize:vertical;"></textarea>
 </div>`,
   });
 

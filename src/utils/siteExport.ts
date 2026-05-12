@@ -175,14 +175,15 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
   // ── Graph API fetch calls ─────────────────────────────────────────────────
   const graphFetchLines = (graphApiQueries ?? [])
     .filter((q) => q.name && q.endpoint)
-    .map((q) => {
+    .map((q, idx) => {
       const params: string[] = [];
       if (q.select) params.push(`$select=${encodeURIComponent(q.select)}`);
       if (q.filter) params.push(`$filter=${encodeURIComponent(q.filter)}`);
       const qs = params.length ? '?' + params.join('&') : '';
+      // Use an indexed variable name to avoid invalid JS identifiers from query.name
       return `  try {
-    var __resp_${q.name} = await fetch(${JSON.stringify(graphBase + q.endpoint + qs)}, { headers: __headers });
-    __pageMetadata[${JSON.stringify(q.name)}] = await __resp_${q.name}.json();
+    var __resp${idx} = await fetch(${JSON.stringify(graphBase + q.endpoint + qs)}, { headers: __headers });
+    __pageMetadata[${JSON.stringify(q.name)}] = await __resp${idx}.json();
   } catch(__e) { console.warn('Graph query ${q.name} failed:', __e); }`;
     })
     .join('\n');
@@ -221,11 +222,14 @@ ${graphFetchLines}
   // ── Metadata Pre-fill for Form Fields ─────────────────────────────────────
   // Reads data-metadata-prefill attributes and sets input values.
   // Supports dot-notation keys, e.g. "currentUser.mail".
+  function __resolvePath(key) {
+    return key.split('.').reduce(function(obj, k) { return obj != null ? obj[k] : undefined; }, __pageMetadata);
+  }
   function __prefillFormFields() {
     document.querySelectorAll('[data-metadata-prefill]').forEach(function(el) {
       var key = el.getAttribute('data-metadata-prefill');
       if (!key) return;
-      var val = key.split('.').reduce(function(obj, k) { return obj && obj[k]; }, __pageMetadata);
+      var val = __resolvePath(key);
       if (val !== undefined && val !== null) {
         el.value = typeof val === 'object' ? JSON.stringify(val) : String(val);
       }
@@ -246,13 +250,19 @@ ${graphFetchLines}
         var successMessage  = form.getAttribute('data-success-message') || 'Form submitted successfully!';
         var successRedirect = form.getAttribute('data-success-redirect') || '';
 
-        // Collect form field values
+        // Collect form field values – preserve multiple values (e.g. checkboxes)
         var body = {};
-        new FormData(form).forEach(function(val, key) { body[key] = val; });
+        new FormData(form).forEach(function(val, key) {
+          if (Object.prototype.hasOwnProperty.call(body, key)) {
+            body[key] = [].concat(body[key], val);
+          } else {
+            body[key] = val;
+          }
+        });
 
         // Inject metadata values (supports dot-notation)
         metadataInject.forEach(function(key) {
-          var val = key.split('.').reduce(function(obj, k) { return obj && obj[k]; }, __pageMetadata);
+          var val = __resolvePath(key);
           if (val !== undefined) body[key] = val;
         });
 
@@ -309,7 +319,7 @@ ${graphFetchLines}
   msalInstance.initialize().then(async function() {
     var response = await msalInstance.handleRedirectPromise();
     if (response) {
-      console.log('MSAL login response received:', response.account && response.account.username);
+      console.log('MSAL login response received:', response.account?.username);
     }
 
     // If a user is already signed in, fetch Graph metadata
@@ -329,10 +339,12 @@ ${graphFetchLines}
     }
   });
 
-  // Initialise form handlers as soon as the DOM is ready
-  __initFormHandlers();
-  // Apply static metadata prefills immediately (Graph prefills happen after token)
-  __prefillFormFields();
+  // Initialise form handlers and static metadata prefills once the DOM is ready.
+  // (Graph API prefills happen later, inside __fetchGraphMetadata.)
+  document.addEventListener('DOMContentLoaded', function() {
+    __initFormHandlers();
+    __prefillFormFields();
+  });
 </script>
 </body>
 </html>`;
