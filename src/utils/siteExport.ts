@@ -210,7 +210,7 @@ ${staticMetadataLines ? staticMetadataLines + '\n' : ''}
       var authPayload = await response.json();
       if (Array.isArray(authPayload) && authPayload.length > 0) {
         var authEntry = authPayload[0];
-        var accessToken = typeof authEntry?.access_token === 'string'
+        var accessToken = authEntry && typeof authEntry.access_token === 'string'
           ? authEntry.access_token
           : '';
         if (accessToken) {
@@ -327,9 +327,13 @@ ${graphFetchLines}
   document.addEventListener('DOMContentLoaded', async function() {
     __initFormHandlers();
     __prefillFormFields();
-    var accessToken = await __getSwaAccessToken();
-    if (accessToken) {
-      await __fetchGraphMetadata(accessToken);
+    try {
+      var accessToken = await __getSwaAccessToken();
+      if (accessToken) {
+        await __fetchGraphMetadata(accessToken);
+      }
+    } catch (__metadataErr) {
+      console.warn('[Auth] Failed to fetch Graph metadata:', __metadataErr);
     }
   });
 </script>
