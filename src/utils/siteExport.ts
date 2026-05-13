@@ -214,11 +214,8 @@ ${graphFetchLines}
 `;
 
   const formAuthBlock = isGeneric
-    ? `        // Build request headers
-        var headers = { 'Content-Type': 'application/json' };`
-    : `        // Build request headers
-        var headers = { 'Content-Type': 'application/json' };
-        if (includeAuth) {
+    ? ''
+    : `        if (includeAuth) {
           var accounts = msalInstance.getAllAccounts();
           if (accounts.length > 0) {
             try {
@@ -345,6 +342,8 @@ ${apiPreloadLines}
           if (val !== undefined) body[key] = val;
         });
 
+        // Build request headers
+        var headers = { 'Content-Type': 'application/json' };
 ${formAuthBlock}
 
         // Disable submit button during request

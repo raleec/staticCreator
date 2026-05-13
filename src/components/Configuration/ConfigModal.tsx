@@ -155,6 +155,7 @@ export default function ConfigModal({
                         checked={config.deploymentEnvironment === env}
                         onChange={() => handleDeploymentEnvironmentChange(env)}
                         className="accent-blue-600"
+                        aria-label={env === 'azure' ? 'Azure Static Web Apps' : 'Generic static hosting'}
                       />
                       <span className="text-sm text-gray-700 capitalize">{env}</span>
                     </label>
