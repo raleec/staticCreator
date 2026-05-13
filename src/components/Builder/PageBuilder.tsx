@@ -6,7 +6,7 @@ import { ArrowLeft, Save, Eye, EyeOff, Settings } from 'lucide-react';
 import { useSites } from '../../contexts/SiteContext';
 import ConfigModal from '../Configuration/ConfigModal';
 import { registerFormBlocks } from '../../utils/formBlocks';
-import type { AzureConfig } from '../../types';
+import type { SiteConfig } from '../../types';
 
 interface PageBuilderProps {
   siteId: string;
@@ -183,7 +183,7 @@ export default function PageBuilder({ siteId, pageId, onBack }: PageBuilderProps
                 <label style="display:block;font-size:.875rem;color:#374151;margin-bottom:4px;">Password</label>
                 <input type="password" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;box-sizing:border-box;" />
               </div>
-              <button style="width:100%;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">Sign In with Azure AD</button>
+              <button style="width:100%;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:6px;font-weight:600;cursor:pointer;">Sign In</button>
             </div>`,
           },
         ],
@@ -244,8 +244,8 @@ export default function PageBuilder({ siteId, pageId, onBack }: PageBuilderProps
     setPreviewMode((prev) => !prev);
   }
 
-  function handleConfigSave(name: string, description: string, azureConfig: AzureConfig) {
-    updateSite(siteId, { name, description, azureConfig });
+  function handleConfigSave(name: string, description: string, siteConfig: SiteConfig) {
+    updateSite(siteId, { name, description, siteConfig });
   }
 
   if (!site || !page) {
@@ -345,7 +345,7 @@ export default function PageBuilder({ siteId, pageId, onBack }: PageBuilderProps
       {configOpen && (
         <ConfigModal
           onClose={() => setConfigOpen(false)}
-          initialConfig={site.azureConfig}
+          initialConfig={site.siteConfig}
           siteName={site.name}
           siteDescription={site.description}
           onSave={handleConfigSave}

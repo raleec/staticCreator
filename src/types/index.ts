@@ -1,15 +1,21 @@
 // ─── Form / Metadata types ───────────────────────────────────────────────────
 
-/** A named Microsoft Graph API query executed on page load. */
-export interface GraphApiQuery {
+/**
+ * A named API query executed on page load to hydrate page metadata with
+ * data from any HTTP endpoint.
+ */
+export interface ApiPreloadQuery {
   /** Key used to store and reference the query result in page metadata. */
   name: string;
-  /** Graph API endpoint path, e.g. '/me' or '/me/memberOf'. */
-  endpoint: string;
-  /** Optional OData $select clause, e.g. 'displayName,mail'. */
-  select?: string;
-  /** Optional OData $filter clause. */
-  filter?: string;
+  /** Full URL of the API endpoint to fetch, e.g. 'https://api.example.com/data'. */
+  url: string;
+  /** HTTP method to use (default: 'GET'). */
+  method?: string;
+  /**
+   * Optional request headers as key/value pairs, e.g. for API keys or auth tokens.
+   * Example: { "Authorization": "Bearer <token>", "x-api-key": "abc" }
+   */
+  headers?: Record<string, string>;
 }
 
 /** A static key/value pair available as page metadata for form injection. */
@@ -20,45 +26,12 @@ export interface MetadataField {
   value: string;
 }
 
-// ─── Azure Region ────────────────────────────────────────────────────────────
+// ─── Site Configuration ───────────────────────────────────────────────────────
 
-export type AzureCloud = 'commercial' | 'government' | 'dod' | 'china';
-
-export interface AzureRegion {
-  id: string;
-  name: string;
-  displayName: string;
-  cloud: AzureCloud;
-  staticWebAppsSupported: boolean;
-}
-
-// ─── Azure / MSAL Configuration ──────────────────────────────────────────────
-
-export interface AzureConfig {
-  /** Azure Tenant (Directory) ID */
-  tenantId: string;
-  /** Azure AD Application (Client) ID */
-  clientId: string;
-  /** Azure subscription ID used when deploying SWA */
-  subscriptionId: string;
-  /** Azure Resource Group name */
-  resourceGroup: string;
-  /** Primary region for the Static Web App */
-  region: string;
-  /** Azure cloud environment */
-  cloud: AzureCloud;
-  /** Optional: custom Azure AD authority URL (overrides cloud default) */
-  customAuthority?: string;
-  /** MSAL redirect URI */
-  redirectUri: string;
-  /** MSAL post-logout redirect URI */
-  postLogoutRedirectUri: string;
-  /** MSAL scopes requested at sign-in */
-  scopes: string[];
-  /** Azure Static Web Apps deployment token */
-  deploymentToken?: string;
-  /** Graph API queries to run on page load; results are available for metadata injection. */
-  graphApiQueries?: GraphApiQuery[];
+/** Site-level configuration for data preload and form metadata. */
+export interface SiteConfig {
+  /** API queries to run on page load; results are stored by name and available for field pre-fill. */
+  apiPreloadQueries?: ApiPreloadQuery[];
   /** Static key/value pairs injected as page metadata for form submissions. */
   metadataFields?: MetadataField[];
 }
@@ -80,7 +53,7 @@ export interface Site {
   id: string;
   name: string;
   description: string;
-  azureConfig: AzureConfig;
+  siteConfig: SiteConfig;
   pages: Page[];
   createdAt: string;
   updatedAt: string;

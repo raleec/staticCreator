@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
-import type { Site, SiteExportBundle, AzureCloud } from '../types';
+import type { Site, SiteExportBundle } from '../types';
 
-const EXPORT_VERSION = '1.0';
+const EXPORT_VERSION = '2.0';
 
 /**
  * Serialises a Site to a JSON export bundle string.
@@ -14,7 +14,7 @@ export function exportSiteAsJson(site: Site): string {
       id: site.id,
       name: site.name,
       description: site.description,
-      azureConfig: site.azureConfig,
+      siteConfig: site.siteConfig,
       createdAt: site.createdAt,
       updatedAt: site.updatedAt,
     },
@@ -34,9 +34,8 @@ export function downloadSiteJson(site: Site): void {
 
 /**
  * Exports the site as a ZIP archive containing:
- *  - site.json    – the full bundle
- *  - pages/       – each page rendered as a standalone HTML file
- *  - staticwebapp.config.json – Azure SWA routing config
+ *  - site.json  – the full bundle
+ *  - pages/     – each page rendered as a standalone HTML file
  */
 export async function downloadSiteZip(site: Site): Promise<void> {
   const zip = new JSZip();
@@ -44,9 +43,6 @@ export async function downloadSiteZip(site: Site): Promise<void> {
 
   // Full bundle JSON
   folder.file('site.json', exportSiteAsJson(site));
-
-  // Static Web App config
-  folder.file('staticwebapp.config.json', buildSwaConfig(site));
 
   // Individual HTML pages
   const pagesFolder = folder.folder('pages')!;
@@ -73,6 +69,19 @@ export async function importSiteFromFile(file: File): Promise<SiteExportBundle> 
     throw new Error('Invalid site bundle – missing required fields.');
   }
 
+  // Migrate v1 bundles that used azureConfig
+  const site = bundle.site as Record<string, unknown>;
+  if (!site.siteConfig && site.azureConfig) {
+    const az = site.azureConfig as Record<string, unknown>;
+    site.siteConfig = {
+      apiPreloadQueries: az.graphApiQueries ?? [],
+      metadataFields: az.metadataFields ?? [],
+    };
+  }
+  if (!site.siteConfig) {
+    site.siteConfig = { apiPreloadQueries: [], metadataFields: [] };
+  }
+
   return bundle;
 }
 
@@ -94,62 +103,9 @@ function triggerDownload(blob: Blob, filename: string): void {
 }
 
 /**
- * Builds a minimal Azure Static Web Apps routing configuration.
- */
-function buildSwaConfig(site: Site): string {
-  const config = {
-    routes: [
-      { route: '/login', rewrite: '/index.html' },
-      { route: '/*', rewrite: '/index.html' },
-    ],
-    navigationFallback: {
-      rewrite: '/index.html',
-      exclude: ['/images/*', '/css/*', '/*.{js,css,ico,png,jpg,gif,svg}'],
-    },
-    responseOverrides: {
-      '401': { redirect: '/login', statusCode: 302 },
-      '403': { statusCode: 403 },
-      '404': { rewrite: '/index.html', statusCode: 200 },
-    },
-    auth: {
-      identityProviders: {
-        azureActiveDirectory: {
-          registration: {
-            openIdIssuer: `https://login.microsoftonline${site.azureConfig.cloud !== 'commercial' ? '.us' : '.com'}/${site.azureConfig.tenantId}/v2.0`,
-            clientIdSettingName: 'AZURE_CLIENT_ID',
-            clientSecretSettingName: 'AZURE_CLIENT_SECRET',
-          },
-        },
-      },
-    },
-    globalHeaders: {
-      'X-Frame-Options': 'DENY',
-      'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-    },
-    mimeTypes: {
-      '.json': 'application/json',
-    },
-  };
-  return JSON.stringify(config, null, 2);
-}
-
-/**
- * Returns the Microsoft Graph API base URL for the given Azure cloud.
- */
-function getGraphApiBase(cloud: AzureCloud): string {
-  switch (cloud) {
-    case 'government': return 'https://graph.microsoft.us/v1.0';
-    case 'dod':        return 'https://dod-graph.microsoft.us/v1.0';
-    case 'china':      return 'https://microsoftgraph.chinacloudapi.cn/v1.0';
-    default:           return 'https://graph.microsoft.com/v1.0';
-  }
-}
-
-/**
  * Wraps the GrapesJS HTML output in a full standalone HTML page including
- * the MSAL authentication bootstrap, page-metadata management and REST-API
- * form submission logic.
+ * API data preload on load, metadata management and REST-API form submission logic.
+ * No cloud-provider dependencies – deployable to any static hosting environment.
  */
 function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
   let bodyHtml = '<p>Empty page</p>';
@@ -161,10 +117,7 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
     // gjsData is not yet populated – use placeholder
   }
 
-  const { tenantId, clientId, redirectUri, cloud, scopes, metadataFields, graphApiQueries } =
-    site.azureConfig;
-  const authorityBase = cloud === 'commercial' ? 'login.microsoftonline.com' : 'login.microsoftonline.us';
-  const graphBase     = getGraphApiBase(cloud);
+  const { apiPreloadQueries, metadataFields } = site.siteConfig;
 
   // ── Static metadata injection ─────────────────────────────────────────────
   const staticMetadataLines = (metadataFields ?? [])
@@ -172,23 +125,18 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
     .map((f) => `  __pageMetadata[${JSON.stringify(f.key)}] = ${JSON.stringify(f.value)};`)
     .join('\n');
 
-  // ── Graph API fetch calls ─────────────────────────────────────────────────
-  const graphFetchLines = (graphApiQueries ?? [])
-    .filter((q) => q.name && q.endpoint)
+  // ── API preload fetch calls ───────────────────────────────────────────────
+  const apiFetchLines = (apiPreloadQueries ?? [])
+    .filter((q) => q.name && q.url)
     .map((q, idx) => {
-      const params: string[] = [];
-      if (q.select) params.push(`$select=${encodeURIComponent(q.select)}`);
-      if (q.filter) params.push(`$filter=${encodeURIComponent(q.filter)}`);
-      const qs = params.length ? '?' + params.join('&') : '';
-      // Use an indexed variable name to avoid invalid JS identifiers from query.name
+      const method = q.method ?? 'GET';
+      const headersJson = JSON.stringify(q.headers ?? {});
       return `  try {
-    var __resp${idx} = await fetch(${JSON.stringify(graphBase + q.endpoint + qs)}, { headers: __headers });
+    var __resp${idx} = await fetch(${JSON.stringify(q.url)}, { method: ${JSON.stringify(method)}, headers: ${headersJson} });
     __pageMetadata[${JSON.stringify(q.name)}] = await __resp${idx}.json();
-  } catch(__e) { console.warn('Graph query ${q.name} failed:', __e); }`;
+  } catch(__e) { console.warn('API preload ${q.name} failed:', __e); }`;
     })
     .join('\n');
-
-  const scopesJson = JSON.stringify(scopes?.length ? scopes : ['User.Read']);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -196,14 +144,6 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${pageName}</title>
-  <!--
-    MSAL Browser v5 – bundle @azure/msal-browser with your build tool or use the
-    CDN URL below with a Subresource Integrity (SRI) hash appropriate for your
-    chosen release: https://github.com/AzureAD/microsoft-authentication-library-for-js/releases
-  -->
-  <script src="https://alcdn.msauth.net/browser/5.10.0/js/msal-browser.min.js"
-    integrity="sha384-REPLACE_WITH_ACTUAL_SRI_HASH_FOR_YOUR_VERSION"
-    crossorigin="anonymous"></script>
 </head>
 <body>
 ${bodyHtml}
@@ -212,16 +152,17 @@ ${bodyHtml}
   var __pageMetadata = {};
 
 ${staticMetadataLines ? staticMetadataLines + '\n' : ''}
-  // ── Graph API Fetch (called after MSAL token acquisition) ──────────────────
-  async function __fetchGraphMetadata(accessToken) {
-    var __headers = { Authorization: 'Bearer ' + accessToken };
-${graphFetchLines}
+  // ── API Data Preload ───────────────────────────────────────────────────────
+  // Fetches configured API endpoints on page load and stores results in
+  // __pageMetadata, then triggers form field pre-fill.
+  async function __loadApiData() {
+${apiFetchLines}
     __prefillFormFields();
   }
 
   // ── Metadata Pre-fill for Form Fields ─────────────────────────────────────
   // Reads data-metadata-prefill attributes and sets input values.
-  // Supports dot-notation keys, e.g. "currentUser.mail".
+  // Supports dot-notation keys, e.g. "currentUser.email".
   function __resolvePath(key) {
     return key.split('.').reduce(function(obj, k) { return obj != null ? obj[k] : undefined; }, __pageMetadata);
   }
@@ -245,7 +186,6 @@ ${graphFetchLines}
         if (!url) { console.warn('[API Form] data-api-url is not set on this form.'); return; }
 
         var method          = form.getAttribute('data-api-method') || 'POST';
-        var includeAuth     = form.getAttribute('data-auth-header') !== 'false';
         var metadataInject  = (form.getAttribute('data-metadata-inject') || '').split(',').map(function(k) { return k.trim(); }).filter(Boolean);
         var successMessage  = form.getAttribute('data-success-message') || 'Form submitted successfully!';
         var successRedirect = form.getAttribute('data-success-redirect') || '';
@@ -269,19 +209,7 @@ ${graphFetchLines}
           if (val !== undefined) body[key] = val;
         });
 
-        // Build request headers
         var headers = { 'Content-Type': 'application/json' };
-        if (includeAuth) {
-          var accounts = msalInstance.getAllAccounts();
-          if (accounts.length > 0) {
-            try {
-              var tokenResp = await msalInstance.acquireTokenSilent({ scopes: ${scopesJson}, account: accounts[0] });
-              headers['Authorization'] = 'Bearer ' + tokenResp.accessToken;
-            } catch(tokenErr) {
-              console.warn('[API Form] Could not acquire token silently – you may need to sign in again.', tokenErr);
-            }
-          }
-        }
 
         // Disable submit button during request
         var submitBtn = form.querySelector('[type="submit"]');
@@ -297,7 +225,7 @@ ${graphFetchLines}
               form.reset();
             }
           } else {
-            var statusMsg = resp.status === 401 ? 'Unauthorized – please sign in and try again.'
+            var statusMsg = resp.status === 401 ? 'Unauthorized – please check your credentials.'
                           : resp.status === 403 ? 'Forbidden – you do not have permission to submit this form.'
                           : resp.status === 400 ? 'Bad request – please check your input and try again.'
                           : 'Submission failed (HTTP ' + resp.status + '). Please try again.';
@@ -313,44 +241,11 @@ ${graphFetchLines}
     });
   }
 
-  // ── MSAL Authentication Bootstrap ─────────────────────────────────────────
-  var msalConfig = {
-    auth: {
-      clientId: '${clientId}',
-      authority: 'https://${authorityBase}/${tenantId}',
-      redirectUri: '${redirectUri}',
-    },
-    cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false },
-  };
-  var msalInstance = new msal.PublicClientApplication(msalConfig);
-  msalInstance.initialize().then(async function() {
-    var response = await msalInstance.handleRedirectPromise();
-    if (response) {
-      console.log('MSAL login response received:', response.account?.username);
-    }
-
-    // If a user is already signed in, fetch Graph metadata
-    var accounts = msalInstance.getAllAccounts();
-    if (accounts.length > 0) {
-      try {
-        var tokenResponse = await msalInstance.acquireTokenSilent({ scopes: ${scopesJson}, account: accounts[0] });
-        await __fetchGraphMetadata(tokenResponse.accessToken);
-      } catch(silentErr) {
-        console.warn('[MSAL] Could not acquire token silently:', silentErr);
-        // Still prefill fields that have static metadata
-        __prefillFormFields();
-      }
-    } else {
-      // No authenticated user yet – still apply static metadata prefills
-      __prefillFormFields();
-    }
-  });
-
-  // Initialise form handlers and static metadata prefills once the DOM is ready.
-  // (Graph API prefills happen later, inside __fetchGraphMetadata.)
+  // ── Initialisation ─────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', function() {
     __initFormHandlers();
     __prefillFormFields();
+    __loadApiData();
   });
 </script>
 </body>

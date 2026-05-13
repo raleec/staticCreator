@@ -6,8 +6,7 @@ import type { Editor } from 'grapesjs';
  *
  * Component types:
  *   rest-api-form  – A <form> that POSTs/PUTs/PATCHes to a configurable URL,
- *                    optionally attaching an MSAL Bearer token and injecting
- *                    page metadata into the request body.
+ *                    optionally injecting page metadata into the request body.
  *
  * Traits exposed on <input> / <select> / <textarea>:
  *   data-metadata-prefill – dot-notation key from __pageMetadata to pre-fill
@@ -39,7 +38,6 @@ export function registerFormBlocks(editor: Editor): void {
           'data-api-form': 'true',
           'data-api-url': '',
           'data-api-method': 'POST',
-          'data-auth-header': 'true',
           'data-metadata-inject': '',
           'data-success-message': 'Form submitted successfully!',
           'data-success-redirect': '',
@@ -62,19 +60,10 @@ export function registerFormBlocks(editor: Editor): void {
             ],
           },
           {
-            type: 'select',
-            name: 'data-auth-header',
-            label: 'Include Bearer Token',
-            options: [
-              { id: 'true', name: 'Yes – include MSAL token' },
-              { id: 'false', name: 'No – unauthenticated' },
-            ],
-          },
-          {
             type: 'text',
             name: 'data-metadata-inject',
             label: 'Inject Metadata Keys (comma-separated)',
-            placeholder: 'key1, key2, currentUser.mail',
+            placeholder: 'key1, key2, currentUser.email',
           },
           {
             type: 'text',
@@ -151,7 +140,7 @@ export function registerFormBlocks(editor: Editor): void {
   editor.BlockManager.add('api-form', {
     label: 'API Form',
     category: 'Forms',
-    content: `<form data-api-form="true" data-api-url="" data-api-method="POST" data-auth-header="true" data-metadata-inject="" data-success-message="Form submitted successfully!" data-success-redirect="" style="${FORM_STYLE}">
+    content: `<form data-api-form="true" data-api-url="" data-api-method="POST" data-metadata-inject="" data-success-message="Form submitted successfully!" data-success-redirect="" style="${FORM_STYLE}">
   <h3 style="margin:0 0 20px;font-size:1.1rem;font-weight:600;color:#111827;">Contact Us</h3>
   <div style="${FIELD_WRAP}">
     <label style="${LABEL_STYLE}">Full Name</label>

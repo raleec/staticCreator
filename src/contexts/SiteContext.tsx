@@ -1,20 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import type { Site, Page, AzureConfig } from '../types';
+import type { Site, Page, SiteConfig } from '../types';
 
-// ─── Default azure config ────────────────────────────────────────────────────
+// ─── Default site config ─────────────────────────────────────────────────────
 
-export const DEFAULT_AZURE_CONFIG: AzureConfig = {
-  tenantId: '',
-  clientId: '',
-  subscriptionId: '',
-  resourceGroup: '',
-  region: 'eastus',
-  cloud: 'commercial',
-  redirectUri: typeof window !== 'undefined' ? window.location.origin : '',
-  postLogoutRedirectUri: typeof window !== 'undefined' ? window.location.origin : '',
-  scopes: ['User.Read'],
-  deploymentToken: '',
+export const DEFAULT_SITE_CONFIG: SiteConfig = {
+  apiPreloadQueries: [],
+  metadataFields: [],
 };
 
 // ─── Context types ────────────────────────────────────────────────────────────
@@ -25,7 +17,7 @@ interface SiteContextValue {
   activePageId: string | null;
   setActiveSiteId: (id: string | null) => void;
   setActivePageId: (id: string | null) => void;
-  createSite: (name: string, description: string, azureConfig: AzureConfig) => Site;
+  createSite: (name: string, description: string, siteConfig: SiteConfig) => Site;
   updateSite: (id: string, updates: Partial<Omit<Site, 'id' | 'pages' | 'createdAt'>>) => void;
   deleteSite: (id: string) => void;
   importSite: (site: Site) => void;
@@ -51,7 +43,25 @@ const STORAGE_KEY = 'staticCreator_sites';
 function loadSites(): Site[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Site[]) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Array<Record<string, unknown>>;
+    // Migrate legacy sites that used azureConfig instead of siteConfig
+    return parsed.map((s) => {
+      if (!s.siteConfig && s.azureConfig) {
+        const az = s.azureConfig as Record<string, unknown>;
+        return {
+          ...s,
+          siteConfig: {
+            apiPreloadQueries: az.graphApiQueries ?? [],
+            metadataFields: az.metadataFields ?? [],
+          },
+        } as unknown as Site;
+      }
+      if (!s.siteConfig) {
+        return { ...s, siteConfig: { apiPreloadQueries: [], metadataFields: [] } } as unknown as Site;
+      }
+      return s as unknown as Site;
+    });
   } catch {
     return [];
   }
@@ -80,12 +90,12 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const createSite = useCallback(
-    (name: string, description: string, azureConfig: AzureConfig): Site => {
+    (name: string, description: string, siteConfig: SiteConfig): Site => {
       const site: Site = {
         id: generateId(),
         name,
         description,
-        azureConfig,
+        siteConfig,
         pages: [],
         createdAt: now(),
         updatedAt: now(),

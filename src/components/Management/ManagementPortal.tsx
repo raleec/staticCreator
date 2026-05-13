@@ -12,9 +12,8 @@ import {
 } from 'lucide-react';
 import { useSites } from '../../contexts/SiteContext';
 import ConfigModal from '../Configuration/ConfigModal';
-import type { AzureConfig, Site } from '../../types';
+import type { SiteConfig, Site } from '../../types';
 import { downloadSiteJson, downloadSiteZip, importSiteFromFile } from '../../utils/siteExport';
-import { CLOUD_LABELS } from '../../utils/azureRegions';
 
 interface ManagementPortalProps {
   onOpenBuilder: (siteId: string, pageId: string) => void;
@@ -41,9 +40,9 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: 'site' | 'page'; siteId: string; pageId?: string } | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
-  function handleSave(name: string, description: string, config: AzureConfig) {
+  function handleSave(name: string, description: string, config: SiteConfig) {
     if (editingSite) {
-      updateSite(editingSite.id, { name, description, azureConfig: config });
+      updateSite(editingSite.id, { name, description, siteConfig: config });
     } else {
       createSite(name, description, config);
     }
@@ -114,7 +113,7 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
             <Globe className="w-7 h-7 text-blue-600" />
             <div>
               <h1 className="text-xl font-bold text-gray-900">StaticCreator</h1>
-              <p className="text-xs text-gray-500">Azure Static Web App Builder</p>
+              <p className="text-xs text-gray-500">Static Web App Builder</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -175,18 +174,10 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
                         <p className="text-xs text-gray-500">
                           {site.description || 'No description'} •{' '}
                           {site.pages.length} page{site.pages.length !== 1 ? 's' : ''} •{' '}
-                          <span
-                            className={`font-medium ${
-                              site.azureConfig.cloud === 'dod'
-                                ? 'text-red-600'
-                                : site.azureConfig.cloud === 'government'
-                                ? 'text-amber-600'
-                                : 'text-blue-600'
-                            }`}
-                          >
-                            {CLOUD_LABELS[site.azureConfig.cloud]}
-                          </span>{' '}
-                          — {site.azureConfig.region}
+                          <span className="text-blue-600 font-medium">
+                            {(site.siteConfig.apiPreloadQueries ?? []).length} preload{' '}
+                            {(site.siteConfig.apiPreloadQueries ?? []).length !== 1 ? 'queries' : 'query'}
+                          </span>
                         </p>
                       </div>
                     </button>
@@ -312,7 +303,7 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
         <ConfigModal
           key={editingSite?.id ?? 'new'}
           onClose={() => { setConfigModalOpen(false); setEditingSite(null); }}
-          initialConfig={editingSite?.azureConfig}
+          initialConfig={editingSite?.siteConfig}
           siteName={editingSite?.name}
           siteDescription={editingSite?.description}
           onSave={handleSave}
@@ -357,7 +348,7 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
       <Globe className="w-16 h-16 text-gray-300 mx-auto mb-4" />
       <h2 className="text-xl font-semibold text-gray-600 mb-2">No sites yet</h2>
       <p className="text-gray-400 mb-6 max-w-sm mx-auto">
-        Create your first site to start building static web pages for Azure deployment.
+        Create your first site to start building static web pages that can be deployed anywhere.
       </p>
       <button
         onClick={onCreate}
