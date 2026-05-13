@@ -48,12 +48,6 @@ export const AZURE_REGIONS: AzureRegion[] = [
   // ── Azure DoD ────────────────────────────────────────────────────────────────
   { id: 'usdodcentral', name: 'usdodcentral', displayName: 'US DoD Central', cloud: 'dod', staticWebAppsSupported: true },
   { id: 'usdodeast', name: 'usdodeast', displayName: 'US DoD East', cloud: 'dod', staticWebAppsSupported: true },
-
-  // ── Azure China (21Vianet) ───────────────────────────────────────────────────
-  { id: 'chinanorth', name: 'chinanorth', displayName: 'China North', cloud: 'china', staticWebAppsSupported: false },
-  { id: 'chinaeast', name: 'chinaeast', displayName: 'China East', cloud: 'china', staticWebAppsSupported: false },
-  { id: 'chinanorth2', name: 'chinanorth2', displayName: 'China North 2', cloud: 'china', staticWebAppsSupported: false },
-  { id: 'chinaeast2', name: 'chinaeast2', displayName: 'China East 2', cloud: 'china', staticWebAppsSupported: false },
 ];
 
 /** Returns Azure AD authority URL based on the chosen cloud environment. */
@@ -63,8 +57,6 @@ export function getAuthorityUrl(cloud: string, tenantId: string): string {
       return `https://login.microsoftonline.us/${tenantId}`;
     case 'dod':
       return `https://login.microsoftonline.us/${tenantId}`;
-    case 'china':
-      return `https://login.chinacloudapi.cn/${tenantId}`;
     default:
       return `https://login.microsoftonline.com/${tenantId}`;
   }
@@ -79,5 +71,4 @@ export const CLOUD_LABELS: Record<string, string> = {
   commercial: 'Azure Commercial',
   government: 'Azure Government (MAG)',
   dod: 'Azure DoD',
-  china: 'Azure China (21Vianet)',
 };

@@ -5,6 +5,7 @@ import type { Site, Page, AzureConfig } from '../types';
 // ─── Default azure config ────────────────────────────────────────────────────
 
 export const DEFAULT_AZURE_CONFIG: AzureConfig = {
+  deploymentEnvironment: 'azure',
   tenantId: '',
   clientId: '',
   subscriptionId: '',
