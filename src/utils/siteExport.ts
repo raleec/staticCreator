@@ -209,8 +209,9 @@ ${staticMetadataLines ? staticMetadataLines + '\n' : ''}
       }
       var authPayload = await response.json();
       if (Array.isArray(authPayload) && authPayload.length > 0) {
-        var accessToken = typeof authPayload[0]?.access_token === 'string'
-          ? authPayload[0].access_token
+        var authEntry = authPayload[0];
+        var accessToken = typeof authEntry?.access_token === 'string'
+          ? authEntry.access_token
           : '';
         if (accessToken) {
           __cachedSwaAccessToken = accessToken;
