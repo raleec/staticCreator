@@ -148,8 +148,7 @@ function getGraphApiBase(cloud: AzureCloud): string {
 
 /**
  * Wraps the GrapesJS HTML output in a full standalone HTML page including
- * the MSAL authentication bootstrap, page-metadata management and REST-API
- * form submission logic.
+ * page-metadata management and REST-API form submission logic.
  */
 function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
   let bodyHtml = '<p>Empty page</p>';
@@ -161,10 +160,8 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
     // gjsData is not yet populated – use placeholder
   }
 
-  const { tenantId, clientId, redirectUri, cloud, scopes, metadataFields, graphApiQueries } =
-    site.azureConfig;
-  const authorityBase = cloud === 'commercial' ? 'login.microsoftonline.com' : 'login.microsoftonline.us';
-  const graphBase     = getGraphApiBase(cloud);
+  const { cloud, metadataFields, graphApiQueries } = site.azureConfig;
+  const graphBase = getGraphApiBase(cloud);
 
   // ── Static metadata injection ─────────────────────────────────────────────
   const staticMetadataLines = (metadataFields ?? [])
@@ -188,31 +185,45 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
     })
     .join('\n');
 
-  const scopesJson = JSON.stringify(scopes?.length ? scopes : ['User.Read']);
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${pageName}</title>
-  <!--
-    MSAL Browser v5 – bundle @azure/msal-browser with your build tool or use the
-    CDN URL below with a Subresource Integrity (SRI) hash appropriate for your
-    chosen release: https://github.com/AzureAD/microsoft-authentication-library-for-js/releases
-  -->
-  <script src="https://alcdn.msauth.net/browser/5.10.0/js/msal-browser.min.js"
-    integrity="sha384-REPLACE_WITH_ACTUAL_SRI_HASH_FOR_YOUR_VERSION"
-    crossorigin="anonymous"></script>
 </head>
 <body>
 ${bodyHtml}
 <script>
   // ── Page Metadata Store ────────────────────────────────────────────────────
   var __pageMetadata = {};
+  var __cachedSwaAccessToken = null;
 
 ${staticMetadataLines ? staticMetadataLines + '\n' : ''}
-  // ── Graph API Fetch (called after MSAL token acquisition) ──────────────────
+  async function __getSwaAccessToken() {
+    if (__cachedSwaAccessToken !== null) return __cachedSwaAccessToken;
+    try {
+      var response = await fetch('/.auth/me', { credentials: 'include' });
+      if (!response.ok) {
+        __cachedSwaAccessToken = '';
+        return __cachedSwaAccessToken;
+      }
+      var authPayload = await response.json();
+      if (Array.isArray(authPayload) && authPayload.length > 0) {
+        var accessToken = authPayload[0] && typeof authPayload[0].access_token === 'string'
+          ? authPayload[0].access_token
+          : '';
+        __cachedSwaAccessToken = accessToken;
+        return __cachedSwaAccessToken;
+      }
+    } catch (__authErr) {
+      console.warn('[Auth] Could not read /.auth/me token:', __authErr);
+    }
+    __cachedSwaAccessToken = '';
+    return __cachedSwaAccessToken;
+  }
+
+  // ── Graph API Fetch (called after token acquisition) ───────────────────────
   async function __fetchGraphMetadata(accessToken) {
     var __headers = { Authorization: 'Bearer ' + accessToken };
 ${graphFetchLines}
@@ -272,14 +283,11 @@ ${graphFetchLines}
         // Build request headers
         var headers = { 'Content-Type': 'application/json' };
         if (includeAuth) {
-          var accounts = msalInstance.getAllAccounts();
-          if (accounts.length > 0) {
-            try {
-              var tokenResp = await msalInstance.acquireTokenSilent({ scopes: ${scopesJson}, account: accounts[0] });
-              headers['Authorization'] = 'Bearer ' + tokenResp.accessToken;
-            } catch(tokenErr) {
-              console.warn('[API Form] Could not acquire token silently – you may need to sign in again.', tokenErr);
-            }
+          var accessToken = await __getSwaAccessToken();
+          if (accessToken) {
+            headers['Authorization'] = 'Bearer ' + accessToken;
+          } else {
+            console.warn('[API Form] No access token available from /.auth/me.');
           }
         }
 
@@ -313,44 +321,15 @@ ${graphFetchLines}
     });
   }
 
-  // ── MSAL Authentication Bootstrap ─────────────────────────────────────────
-  var msalConfig = {
-    auth: {
-      clientId: '${clientId}',
-      authority: 'https://${authorityBase}/${tenantId}',
-      redirectUri: '${redirectUri}',
-    },
-    cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false },
-  };
-  var msalInstance = new msal.PublicClientApplication(msalConfig);
-  msalInstance.initialize().then(async function() {
-    var response = await msalInstance.handleRedirectPromise();
-    if (response) {
-      console.log('MSAL login response received:', response.account?.username);
-    }
-
-    // If a user is already signed in, fetch Graph metadata
-    var accounts = msalInstance.getAllAccounts();
-    if (accounts.length > 0) {
-      try {
-        var tokenResponse = await msalInstance.acquireTokenSilent({ scopes: ${scopesJson}, account: accounts[0] });
-        await __fetchGraphMetadata(tokenResponse.accessToken);
-      } catch(silentErr) {
-        console.warn('[MSAL] Could not acquire token silently:', silentErr);
-        // Still prefill fields that have static metadata
-        __prefillFormFields();
-      }
-    } else {
-      // No authenticated user yet – still apply static metadata prefills
-      __prefillFormFields();
-    }
-  });
-
   // Initialise form handlers and static metadata prefills once the DOM is ready.
-  // (Graph API prefills happen later, inside __fetchGraphMetadata.)
-  document.addEventListener('DOMContentLoaded', function() {
+  // Graph API prefills happen after a token is available from /.auth/me.
+  document.addEventListener('DOMContentLoaded', async function() {
     __initFormHandlers();
     __prefillFormFields();
+    var accessToken = await __getSwaAccessToken();
+    if (accessToken) {
+      await __fetchGraphMetadata(accessToken);
+    }
   });
 </script>
 </body>

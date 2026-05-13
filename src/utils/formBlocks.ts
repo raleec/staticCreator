@@ -6,7 +6,7 @@ import type { Editor } from 'grapesjs';
  *
  * Component types:
  *   rest-api-form  – A <form> that POSTs/PUTs/PATCHes to a configurable URL,
- *                    optionally attaching an MSAL Bearer token and injecting
+ *                    optionally attaching a SWA auth Bearer token and injecting
  *                    page metadata into the request body.
  *
  * Traits exposed on <input> / <select> / <textarea>:
@@ -66,7 +66,7 @@ export function registerFormBlocks(editor: Editor): void {
             name: 'data-auth-header',
             label: 'Include Bearer Token',
             options: [
-              { id: 'true', name: 'Yes – include MSAL token' },
+              { id: 'true', name: 'Yes – include auth token' },
               { id: 'false', name: 'No – unauthenticated' },
             ],
           },
