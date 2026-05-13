@@ -197,30 +197,30 @@ ${bodyHtml}
 <script>
   // ── Page Metadata Store ────────────────────────────────────────────────────
   var __pageMetadata = {};
-  var __cachedSwaAccessToken = null;
+  var __cachedSwaAccessToken = '';
 
 ${staticMetadataLines ? staticMetadataLines + '\n' : ''}
   async function __getSwaAccessToken() {
-    if (__cachedSwaAccessToken !== null) return __cachedSwaAccessToken;
+    if (__cachedSwaAccessToken) return __cachedSwaAccessToken;
     try {
       var response = await fetch('/.auth/me', { credentials: 'include' });
       if (!response.ok) {
-        __cachedSwaAccessToken = '';
-        return __cachedSwaAccessToken;
+        return '';
       }
       var authPayload = await response.json();
       if (Array.isArray(authPayload) && authPayload.length > 0) {
-        var accessToken = authPayload[0] && typeof authPayload[0].access_token === 'string'
+        var accessToken = typeof authPayload[0]?.access_token === 'string'
           ? authPayload[0].access_token
           : '';
-        __cachedSwaAccessToken = accessToken;
-        return __cachedSwaAccessToken;
+        if (accessToken) {
+          __cachedSwaAccessToken = accessToken;
+        }
+        return accessToken;
       }
     } catch (__authErr) {
       console.warn('[Auth] Could not read /.auth/me token:', __authErr);
     }
-    __cachedSwaAccessToken = '';
-    return __cachedSwaAccessToken;
+    return '';
   }
 
   // ── Graph API Fetch (called after token acquisition) ───────────────────────
