@@ -20,6 +20,25 @@ export interface MetadataField {
   value: string;
 }
 
+/**
+ * A generic API query executed on page load.
+ * Results are stored in `window.__pageData` (global scope) and merged into
+ * `__pageMetadata` so they can be referenced by form-field pre-fill attributes.
+ */
+export interface ApiPreloadQuery {
+  /** Key used to store the result in `window.__pageData` and page metadata. */
+  name: string;
+  /** Full URL of the API endpoint to fetch, e.g. 'https://api.example.com/items'. */
+  url: string;
+  /** HTTP method (defaults to 'GET'). */
+  method?: string;
+  /**
+   * When true the MSAL Bearer token is included in the Authorization header
+   * if a user is currently authenticated – requests still succeed without it.
+   */
+  includeAuthHeader?: boolean;
+}
+
 // ─── Azure Region ────────────────────────────────────────────────────────────
 
 export type AzureCloud = 'commercial' | 'government' | 'dod' | 'china';
@@ -61,6 +80,8 @@ export interface AzureConfig {
   graphApiQueries?: GraphApiQuery[];
   /** Static key/value pairs injected as page metadata for form submissions. */
   metadataFields?: MetadataField[];
+  /** Generic API queries executed on page load; results stored in window.__pageData and page metadata. */
+  apiPreloadQueries?: ApiPreloadQuery[];
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
