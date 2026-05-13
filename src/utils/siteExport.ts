@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import type { Site, SiteExportBundle, AzureCloud } from '../types';
+import type { Site, SiteExportBundle, AzureCloud, ApiPreloadQuery } from '../types';
 
 const EXPORT_VERSION = '1.0';
 
@@ -161,7 +161,7 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
     // gjsData is not yet populated – use placeholder
   }
 
-  const { tenantId, clientId, redirectUri, cloud, scopes, metadataFields, graphApiQueries } =
+  const { tenantId, clientId, redirectUri, cloud, scopes, metadataFields, graphApiQueries, apiPreloadQueries } =
     site.azureConfig;
   const authorityBase = cloud === 'commercial' ? 'login.microsoftonline.com' : 'login.microsoftonline.us';
   const graphBase     = getGraphApiBase(cloud);
@@ -190,6 +190,9 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
 
   const scopesJson = JSON.stringify(scopes?.length ? scopes : ['User.Read']);
 
+  // ── Generic API preload fetch calls ──────────────────────────────────────
+  const apiPreloadLines = buildApiPreloadLines(apiPreloadQueries ?? [], scopesJson);
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -211,11 +214,26 @@ ${bodyHtml}
   // ── Page Metadata Store ────────────────────────────────────────────────────
   var __pageMetadata = {};
 
+  // ── Global Page Data (populated by API preloads) ──────────────────────────
+  window.__pageData = {};
+
 ${staticMetadataLines ? staticMetadataLines + '\n' : ''}
   // ── Graph API Fetch (called after MSAL token acquisition) ──────────────────
   async function __fetchGraphMetadata(accessToken) {
     var __headers = { Authorization: 'Bearer ' + accessToken };
 ${graphFetchLines}
+    __prefillFormFields();
+  }
+
+  // ── Generic API Preload (called on DOMContentLoaded) ───────────────────────
+  // Results are stored in window.__pageData and merged into __pageMetadata so
+  // they are accessible via data-metadata-prefill attributes on form fields.
+  async function __fetchApiPreloads() {
+${apiPreloadLines}
+    // Sync preloaded data into __pageMetadata for form-field pre-fill
+    Object.keys(window.__pageData).forEach(function(k) {
+      __pageMetadata[k] = window.__pageData[k];
+    });
     __prefillFormFields();
   }
 
@@ -346,13 +364,62 @@ ${graphFetchLines}
     }
   });
 
-  // Initialise form handlers and static metadata prefills once the DOM is ready.
-  // (Graph API prefills happen later, inside __fetchGraphMetadata.)
+  // Initialise form handlers, static metadata prefills, and generic API
+  // preloads once the DOM is ready.  Graph API prefills happen later, inside
+  // __fetchGraphMetadata, which runs after MSAL token acquisition.
   document.addEventListener('DOMContentLoaded', function() {
     __initFormHandlers();
     __prefillFormFields();
+    __fetchApiPreloads();
   });
 </script>
 </body>
 </html>`;
+}
+
+// ─── API Preload code-generation helper ──────────────────────────────────────
+
+/**
+ * Generates the inline JS statements for the __fetchApiPreloads function.
+ * Each query fetches its configured URL, stores the JSON response in
+ * window.__pageData under the query's name, and optionally includes a
+ * MSAL Bearer token in the Authorization header.
+ */
+function buildApiPreloadLines(queries: ApiPreloadQuery[], scopesJson: string): string {
+  const valid = queries.filter((q) => q.name && q.url);
+  if (valid.length === 0) return '';
+
+  const needsAuth = valid.some((q) => q.includeAuthHeader);
+
+  const tokenBlock = needsAuth
+    ? `    // Acquire MSAL token once for all auth-enabled preloads (best-effort)
+    var __preloadToken = null;
+    try {
+      var __preloadAccounts = msalInstance.getAllAccounts();
+      if (__preloadAccounts.length > 0) {
+        var __preloadTokenResp = await msalInstance.acquireTokenSilent({ scopes: ${scopesJson}, account: __preloadAccounts[0] });
+        __preloadToken = __preloadTokenResp.accessToken;
+      }
+    } catch(__tokenErr) {
+      console.warn('[API Preload] Could not acquire MSAL token for authenticated preloads:', __tokenErr);
+    }`
+    : '';
+
+  const fetchBlocks = valid
+    .map((q, idx) => {
+      const method = JSON.stringify((q.method && q.method.trim()) || 'GET');
+      const authLine = q.includeAuthHeader
+        ? `    var __preloadHeaders${idx} = __preloadToken ? { 'Authorization': 'Bearer ' + __preloadToken } : {};`
+        : `    var __preloadHeaders${idx} = {};`;
+      return `  try {
+${authLine}
+    var __preloadResp${idx} = await fetch(${JSON.stringify(q.url)}, { method: ${method}, headers: __preloadHeaders${idx} });
+    window.__pageData[${JSON.stringify(q.name)}] = await __preloadResp${idx}.json();
+  } catch(__preloadErr${idx}) {
+    console.warn('[API Preload] ${q.name} failed:', __preloadErr${idx});
+  }`;
+    })
+    .join('\n');
+
+  return `${tokenBlock ? tokenBlock + '\n' : ''}${fetchBlocks}`;
 }

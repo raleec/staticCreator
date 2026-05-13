@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, ChevronDown, Plus, Trash2 } from 'lucide-react';
-import type { AzureConfig, AzureCloud, GraphApiQuery, MetadataField } from '../../types';
+import type { AzureConfig, AzureCloud, GraphApiQuery, MetadataField, ApiPreloadQuery } from '../../types';
 import { DEFAULT_AZURE_CONFIG } from '../../contexts/SiteContext';
 import { AZURE_REGIONS, CLOUD_LABELS, getAuthorityUrl } from '../../utils/azureRegions';
 
@@ -32,7 +32,7 @@ export default function ConfigModal({
   const [config, setConfig] = useState<AzureConfig>(
     initialConfig ?? DEFAULT_AZURE_CONFIG,
   );
-  const [activeTab, setActiveTab] = useState<'general' | 'auth' | 'region' | 'forms'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'auth' | 'region' | 'forms' | 'data'>('general');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   function updateConfig<K extends keyof AzureConfig>(key: K, value: AzureConfig[K]) {
@@ -99,7 +99,7 @@ export default function ConfigModal({
 
         {/* Tabs */}
         <div className="flex border-b px-6">
-          {(['general', 'auth', 'region', 'forms'] as const).map((tab) => (
+          {(['general', 'auth', 'region', 'data', 'forms'] as const).map((tab) => (
             <button key={tab} className={tabClass(tab)} onClick={() => setActiveTab(tab)}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
@@ -309,6 +309,122 @@ export default function ConfigModal({
                     </tbody>
                   </table>
                 </div>
+              </div>
+            </>
+          )}
+
+          {/* ── Data Tab ────────────────────────────────────────────────────── */}
+          {activeTab === 'data' && (
+            <>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">API Preload Queries</p>
+                    <p className="text-xs text-gray-400">
+                      Fetched on every page load. Results are stored in{' '}
+                      <span className="font-mono">window.__pageData</span> (global scope) and are
+                      usable in form metadata injection (e.g.{' '}
+                      <span className="font-mono">products.0.name</span>).
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated: ApiPreloadQuery[] = [
+                        ...(config.apiPreloadQueries ?? []),
+                        { name: '', url: '', method: 'GET', includeAuthHeader: false },
+                      ];
+                      updateConfig('apiPreloadQueries', updated);
+                    }}
+                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium shrink-0"
+                  >
+                    <Plus className="w-3 h-3" /> Add Query
+                  </button>
+                </div>
+                {(config.apiPreloadQueries ?? []).length === 0 ? (
+                  <p className="text-xs text-gray-400 italic py-1">No API preload queries configured.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {(config.apiPreloadQueries ?? []).map((query, i) => (
+                      <div
+                        key={i}
+                        className="border border-gray-200 rounded-lg p-3 bg-gray-50 space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            Query {i + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              updateConfig(
+                                'apiPreloadQueries',
+                                (config.apiPreloadQueries ?? []).filter((_, idx) => idx !== i),
+                              );
+                            }}
+                            className="text-red-400 hover:text-red-600"
+                            aria-label="Remove query"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={query.name}
+                          onChange={(e) => {
+                            const updated = [...(config.apiPreloadQueries ?? [])];
+                            updated[i] = { ...updated[i], name: e.target.value };
+                            updateConfig('apiPreloadQueries', updated);
+                          }}
+                          placeholder="Name (e.g. products)"
+                          className={inputCls(false)}
+                        />
+                        <input
+                          type="url"
+                          value={query.url}
+                          onChange={(e) => {
+                            const updated = [...(config.apiPreloadQueries ?? [])];
+                            updated[i] = { ...updated[i], url: e.target.value };
+                            updateConfig('apiPreloadQueries', updated);
+                          }}
+                          placeholder="URL (e.g. https://api.example.com/items)"
+                          className={inputCls(false)}
+                        />
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <select
+                              value={query.method ?? 'GET'}
+                              onChange={(e) => {
+                                const updated = [...(config.apiPreloadQueries ?? [])];
+                                updated[i] = { ...updated[i], method: e.target.value };
+                                updateConfig('apiPreloadQueries', updated);
+                              }}
+                              className="w-full appearance-none rounded-lg border border-gray-300 px-3 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              {['GET', 'POST'].map((m) => (
+                                <option key={m} value={m}>{m}</option>
+                              ))}
+                            </select>
+                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          </div>
+                          <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={query.includeAuthHeader ?? false}
+                              onChange={(e) => {
+                                const updated = [...(config.apiPreloadQueries ?? [])];
+                                updated[i] = { ...updated[i], includeAuthHeader: e.target.checked };
+                                updateConfig('apiPreloadQueries', updated);
+                              }}
+                              className="rounded border-gray-300"
+                            />
+                            Include MSAL auth token
+                          </label>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </>
           )}
