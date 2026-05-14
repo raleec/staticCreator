@@ -121,3 +121,50 @@ export interface SiteExportBundle {
   site: Omit<Site, 'pages'>;
   pages: Page[];
 }
+
+// ─── API Builder ──────────────────────────────────────────────────────────────
+
+/** Supported column data types in the API Builder table designer. */
+export type ColumnType = 'string' | 'int' | 'decimal' | 'boolean' | 'datetime' | 'guid';
+
+/** A single column within an API Builder table definition. */
+export interface TableColumn {
+  /** Column name (PascalCase recommended; used as C# property name). */
+  name: string;
+  /** SQL / .NET data type. */
+  type: ColumnType;
+  /** Whether null is a valid value. */
+  nullable: boolean;
+  /** When true this column is the primary key of the table. */
+  isPrimaryKey: boolean;
+  /** Optional human-readable description included in the OpenAPI spec. */
+  description?: string;
+}
+
+/** A table (entity) whose CRUD API will be generated. */
+export interface TableDefinition {
+  /** Table name (PascalCase, singular recommended, e.g. "Product"). */
+  name: string;
+  /** Optional description included in the OpenAPI spec. */
+  description?: string;
+  /** Ordered list of columns. */
+  columns: TableColumn[];
+}
+
+/** Top-level configuration for the API Builder code generator. */
+export interface ApiBuilderConfig {
+  /** Name of the service / Function App project (e.g. "InventoryService"). */
+  serviceName: string;
+  /**
+   * API version label used in the URL path prefix, e.g. "v1".
+   * Defaults to "v1".
+   */
+  version: string;
+  /**
+   * Base URL used in the OpenAPI `servers` block
+   * (e.g. "https://api.example.com").
+   */
+  baseUrl: string;
+  /** Tables (entities) for which CRUD Functions will be generated. */
+  tables: TableDefinition[];
+}
