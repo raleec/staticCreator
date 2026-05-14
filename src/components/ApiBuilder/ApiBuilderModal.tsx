@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { X, Plus, Trash2, Download, ChevronDown, ChevronRight } from 'lucide-react';
+import { X, Plus, Trash2, Download, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import type { ApiBuilderConfig, TableDefinition, TableColumn, ColumnType } from '../../types';
 import { downloadApiBuilderZip } from '../../utils/apiBuilder';
+import { parseSqlTableDef } from '../../utils/sqlTableParser';
 
 interface ApiBuilderModalProps {
   onClose: () => void;
@@ -52,6 +53,12 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
   const [expandedTable, setExpandedTable] = useState<number>(0);
   const [generating, setGenerating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  /** Per-table: whether the "Import from SQL" panel is open. */
+  const [importOpen, setImportOpen] = useState<Record<number, boolean>>({});
+  /** Per-table: the raw SQL text pasted by the user. */
+  const [importText, setImportText] = useState<Record<number, string>>({});
+  /** Per-table: error message from the last import attempt. */
+  const [importError, setImportError] = useState<Record<number, string>>({});
 
   function clearError(key: string) {
     setErrors((prev) => {
@@ -146,6 +153,32 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
       delete next[`col-${tIdx}-${cIdx}-name`];
       return next;
     });
+  }
+
+  // ── SQL Import ────────────────────────────────────────────────────────────
+
+  function importColumns(tIdx: number) {
+    const sql = importText[tIdx] ?? '';
+    if (!sql.trim()) {
+      setImportError((prev) => ({ ...prev, [tIdx]: 'Paste a SQL column definition first.' }));
+      return;
+    }
+    const parsed = parseSqlTableDef(sql);
+    if (parsed.length === 0) {
+      setImportError((prev) => ({ ...prev, [tIdx]: 'No columns could be parsed. Check the format and try again.' }));
+      return;
+    }
+    // Keep existing PK column(s); add parsed columns, skipping any whose name
+    // matches an existing PK column to avoid duplicates.
+    const existing = tables[tIdx].columns;
+    const pkCols = existing.filter((c) => c.isPrimaryKey);
+    const pkNames = new Set(pkCols.map((c) => c.name.toLowerCase()));
+    const dedupedParsed = parsed.filter((c) => !pkNames.has(c.name.toLowerCase()));
+    const merged = [...pkCols, ...dedupedParsed];
+    updateTable(tIdx, { columns: merged });
+    setImportError((prev) => { const n = { ...prev }; delete n[tIdx]; return n; });
+    setImportText((prev) => ({ ...prev, [tIdx]: '' }));
+    setImportOpen((prev) => ({ ...prev, [tIdx]: false }));
   }
 
   // ── Generate & Download ───────────────────────────────────────────────────
@@ -311,6 +344,53 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
                     {errors[`table-${tIdx}-pk`] && (
                       <p className="text-xs text-red-500">{errors[`table-${tIdx}-pk`]}</p>
                     )}
+
+                    {/* SQL Import panel */}
+                    <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50">
+                      <button
+                        type="button"
+                        onClick={() => setImportOpen((prev) => ({ ...prev, [tIdx]: !prev[tIdx] }))}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-xs font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        {importOpen[tIdx] ? 'Hide SQL Import' : 'Import columns from SQL definition'}
+                        {importOpen[tIdx]
+                          ? <ChevronDown className="w-3.5 h-3.5 ml-auto" />
+                          : <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+                      </button>
+
+                      {importOpen[tIdx] && (
+                        <div className="px-3 pb-3 space-y-2">
+                          <p className="text-xs text-gray-500">
+                            Paste the column list from a SQL Server <code>CREATE TABLE</code> statement
+                            (including or excluding the outer parentheses). Existing primary key
+                            columns are preserved; all other columns are replaced.
+                          </p>
+                          <textarea
+                            rows={8}
+                            value={importText[tIdx] ?? ''}
+                            onChange={(e) => {
+                              setImportText((prev) => ({ ...prev, [tIdx]: e.target.value }));
+                              setImportError((prev) => { const n = { ...prev }; delete n[tIdx]; return n; });
+                            }}
+                            placeholder={`[ColumnName] [nvarchar](255) NULL,\n[Amount]     [decimal](18,2) NOT NULL,\n[CreatedAt]  [datetime2]    NOT NULL`}
+                            className="w-full text-xs font-mono border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-y"
+                            spellCheck={false}
+                          />
+                          {importError[tIdx] && (
+                            <p className="text-xs text-red-500">{importError[tIdx]}</p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => importColumns(tIdx)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            Import Columns
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Columns */}
                     <div className="space-y-2">
