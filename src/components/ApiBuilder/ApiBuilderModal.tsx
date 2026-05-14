@@ -168,10 +168,13 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
       setImportError((prev) => ({ ...prev, [tIdx]: 'No columns could be parsed. Check the format and try again.' }));
       return;
     }
-    // Keep existing PK column(s) and append / replace the rest
+    // Keep existing PK column(s); add parsed columns, skipping any whose name
+    // matches an existing PK column to avoid duplicates.
     const existing = tables[tIdx].columns;
     const pkCols = existing.filter((c) => c.isPrimaryKey);
-    const merged = [...pkCols, ...parsed];
+    const pkNames = new Set(pkCols.map((c) => c.name.toLowerCase()));
+    const dedupedParsed = parsed.filter((c) => !pkNames.has(c.name.toLowerCase()));
+    const merged = [...pkCols, ...dedupedParsed];
     updateTable(tIdx, { columns: merged });
     setImportError((prev) => { const n = { ...prev }; delete n[tIdx]; return n; });
     setImportText((prev) => ({ ...prev, [tIdx]: '' }));

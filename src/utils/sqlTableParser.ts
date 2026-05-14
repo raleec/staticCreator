@@ -27,7 +27,7 @@ function toPascalCase(name: string): string {
   // Split on underscores or transitions between lower→upper for snake_case /
   // mixed-case names, then capitalise each segment and join.
   const cleaned = name.replace(/[^a-zA-Z0-9_]/g, '');
-  if (!cleaned) return name;
+  if (!cleaned) return 'Column';
   return cleaned
     .split('_')
     .filter(Boolean)
@@ -59,8 +59,14 @@ export function parseSqlTableDef(sql: string): TableColumn[] {
   for (const raw of sql.split('\n')) {
     const line = raw.trim();
 
-    // Skip empty lines, bare parentheses, and CONSTRAINT / INDEX lines
-    if (!line || line === '(' || line === ')' || /^constraint\b/i.test(line)) continue;
+    // Skip empty lines, bare parentheses, and lines that start with SQL
+    // structural keywords (CONSTRAINT, INDEX, PRIMARY KEY, FOREIGN KEY, UNIQUE)
+    if (
+      !line ||
+      line === '(' ||
+      line === ')' ||
+      /^(constraint|index|primary\s+key|foreign\s+key|unique)\b/i.test(line)
+    ) continue;
 
     // Strip leading/trailing brackets that wrap the whole line (e.g. just "(")
     const stripped = line.replace(/,$/, '').trim();
