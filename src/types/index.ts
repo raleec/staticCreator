@@ -151,6 +151,16 @@ export interface TableDefinition {
   columns: TableColumn[];
 }
 
+/** Export bundle wrapping an API Builder configuration with metadata. */
+export interface ApiBuilderExportBundle {
+  /** Schema version for forward-compatibility. */
+  version: string;
+  /** ISO-8601 timestamp of when the config was exported. */
+  exportedAt: string;
+  /** The saved API Builder configuration. */
+  config: ApiBuilderConfig;
+}
+
 /** Top-level configuration for the API Builder code generator. */
 export interface ApiBuilderConfig {
   /** Name of the service / Function App project (e.g. "InventoryService"). */
