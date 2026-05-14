@@ -36,7 +36,7 @@ export function downloadSiteJson(site: Site): void {
  * Exports the site as a ZIP archive containing:
  *  - site.json    – the full bundle
  *  - pages/       – each page rendered as a standalone HTML file
- *  - staticwebapp.config.json – Azure SWA routing config
+ *  - staticwebapp.config.json – Azure SWA routing config (Azure deployments only)
  */
 export async function downloadSiteZip(site: Site): Promise<void> {
   const zip = new JSZip();
@@ -45,8 +45,10 @@ export async function downloadSiteZip(site: Site): Promise<void> {
   // Full bundle JSON
   folder.file('site.json', exportSiteAsJson(site));
 
-  // Static Web App config
-  folder.file('staticwebapp.config.json', buildSwaConfig(site));
+  // Static Web App config (Azure only)
+  if (site.azureConfig.deploymentEnvironment !== 'generic') {
+    folder.file('staticwebapp.config.json', buildSwaConfig(site));
+  }
 
   // Individual HTML pages
   const pagesFolder = folder.folder('pages')!;
@@ -141,15 +143,14 @@ function getGraphApiBase(cloud: AzureCloud): string {
   switch (cloud) {
     case 'government': return 'https://graph.microsoft.us/v1.0';
     case 'dod':        return 'https://dod-graph.microsoft.us/v1.0';
-    case 'china':      return 'https://microsoftgraph.chinacloudapi.cn/v1.0';
     default:           return 'https://graph.microsoft.com/v1.0';
   }
 }
 
 /**
  * Wraps the GrapesJS HTML output in a full standalone HTML page including
- * the MSAL authentication bootstrap, page-metadata management and REST-API
- * form submission logic.
+ * page-metadata management and REST-API form submission logic.
+ * For Azure deployments, MSAL authentication bootstrap is also included.
  */
 function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
   let bodyHtml = '<p>Empty page</p>';
@@ -161,8 +162,9 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
     // gjsData is not yet populated – use placeholder
   }
 
-  const { tenantId, clientId, redirectUri, cloud, scopes, metadataFields, graphApiQueries, apiPreloadQueries } =
+  const { deploymentEnvironment, tenantId, clientId, redirectUri, cloud, scopes, metadataFields, graphApiQueries, apiPreloadQueries } =
     site.azureConfig;
+  const isGeneric = deploymentEnvironment === 'generic';
   const authorityBase = cloud === 'commercial' ? 'login.microsoftonline.com' : 'login.microsoftonline.us';
   const graphBase     = getGraphApiBase(cloud);
 
@@ -172,8 +174,8 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
     .map((f) => `  __pageMetadata[${JSON.stringify(f.key)}] = ${JSON.stringify(f.value)};`)
     .join('\n');
 
-  // ── Graph API fetch calls ─────────────────────────────────────────────────
-  const graphFetchLines = (graphApiQueries ?? [])
+  // ── Graph API fetch calls (Azure only) ───────────────────────────────────
+  const graphFetchLines = isGeneric ? '' : (graphApiQueries ?? [])
     .filter((q) => q.name && q.endpoint)
     .map((q, idx) => {
       const params: string[] = [];
@@ -193,20 +195,80 @@ function buildPageHtml(pageName: string, gjsData: string, site: Site): string {
   // ── Generic API preload fetch calls ──────────────────────────────────────
   const apiPreloadLines = buildApiPreloadLines(apiPreloadQueries ?? [], scopesJson);
 
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${pageName}</title>
-  <!--
+  const msalScriptTag = isGeneric ? '' : `  <!--
     MSAL Browser v5 – bundle @azure/msal-browser with your build tool or use the
     CDN URL below with a Subresource Integrity (SRI) hash appropriate for your
     chosen release: https://github.com/AzureAD/microsoft-authentication-library-for-js/releases
   -->
   <script src="https://alcdn.msauth.net/browser/5.10.0/js/msal-browser.min.js"
     integrity="sha384-REPLACE_WITH_ACTUAL_SRI_HASH_FOR_YOUR_VERSION"
-    crossorigin="anonymous"></script>
+    crossorigin="anonymous"></script>`;
+
+  const graphMetadataFunction = isGeneric ? '' : `
+  // ── Graph API Fetch (called after MSAL token acquisition) ──────────────────
+  async function __fetchGraphMetadata(accessToken) {
+    var __headers = { Authorization: 'Bearer ' + accessToken };
+${graphFetchLines}
+    __prefillFormFields();
+  }
+`;
+
+  const formAuthBlock = isGeneric
+    ? ''
+    : `        if (includeAuth) {
+          var accounts = msalInstance.getAllAccounts();
+          if (accounts.length > 0) {
+            try {
+              var tokenResp = await msalInstance.acquireTokenSilent({ scopes: ${scopesJson}, account: accounts[0] });
+              headers['Authorization'] = 'Bearer ' + tokenResp.accessToken;
+            } catch(tokenErr) {
+              console.warn('[API Form] Could not acquire token silently – you may need to sign in again.', tokenErr);
+            }
+          }
+        }`;
+
+  const msalBootstrap = isGeneric ? '' : `
+  // ── MSAL Authentication Bootstrap ─────────────────────────────────────────
+  var msalConfig = {
+    auth: {
+      clientId: '${clientId}',
+      authority: 'https://${authorityBase}/${tenantId}',
+      redirectUri: '${redirectUri}',
+    },
+    cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false },
+  };
+  var msalInstance = new msal.PublicClientApplication(msalConfig);
+  msalInstance.initialize().then(async function() {
+    var response = await msalInstance.handleRedirectPromise();
+    if (response) {
+      console.log('MSAL login response received:', response.account?.username);
+    }
+
+    // If a user is already signed in, fetch Graph metadata
+    var accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      try {
+        var tokenResponse = await msalInstance.acquireTokenSilent({ scopes: ${scopesJson}, account: accounts[0] });
+        await __fetchGraphMetadata(tokenResponse.accessToken);
+      } catch(silentErr) {
+        console.warn('[MSAL] Could not acquire token silently:', silentErr);
+        // Still prefill fields that have static metadata
+        __prefillFormFields();
+      }
+    } else {
+      // No authenticated user yet – still apply static metadata prefills
+      __prefillFormFields();
+    }
+  });
+`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${pageName}</title>
+${msalScriptTag}
 </head>
 <body>
 ${bodyHtml}
@@ -217,14 +279,7 @@ ${bodyHtml}
   // ── Global Page Data (populated by API preloads) ──────────────────────────
   window.__pageData = {};
 
-${staticMetadataLines ? staticMetadataLines + '\n' : ''}
-  // ── Graph API Fetch (called after MSAL token acquisition) ──────────────────
-  async function __fetchGraphMetadata(accessToken) {
-    var __headers = { Authorization: 'Bearer ' + accessToken };
-${graphFetchLines}
-    __prefillFormFields();
-  }
-
+${staticMetadataLines ? staticMetadataLines + '\n' : ''}${graphMetadataFunction}
   // ── Generic API Preload (called on DOMContentLoaded) ───────────────────────
   // Results are stored in window.__pageData and merged into __pageMetadata so
   // they are accessible via data-metadata-prefill attributes on form fields.
@@ -289,17 +344,7 @@ ${apiPreloadLines}
 
         // Build request headers
         var headers = { 'Content-Type': 'application/json' };
-        if (includeAuth) {
-          var accounts = msalInstance.getAllAccounts();
-          if (accounts.length > 0) {
-            try {
-              var tokenResp = await msalInstance.acquireTokenSilent({ scopes: ${scopesJson}, account: accounts[0] });
-              headers['Authorization'] = 'Bearer ' + tokenResp.accessToken;
-            } catch(tokenErr) {
-              console.warn('[API Form] Could not acquire token silently – you may need to sign in again.', tokenErr);
-            }
-          }
-        }
+${formAuthBlock}
 
         // Disable submit button during request
         var submitBtn = form.querySelector('[type="submit"]');
@@ -330,40 +375,7 @@ ${apiPreloadLines}
       });
     });
   }
-
-  // ── MSAL Authentication Bootstrap ─────────────────────────────────────────
-  var msalConfig = {
-    auth: {
-      clientId: '${clientId}',
-      authority: 'https://${authorityBase}/${tenantId}',
-      redirectUri: '${redirectUri}',
-    },
-    cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false },
-  };
-  var msalInstance = new msal.PublicClientApplication(msalConfig);
-  msalInstance.initialize().then(async function() {
-    var response = await msalInstance.handleRedirectPromise();
-    if (response) {
-      console.log('MSAL login response received:', response.account?.username);
-    }
-
-    // If a user is already signed in, fetch Graph metadata
-    var accounts = msalInstance.getAllAccounts();
-    if (accounts.length > 0) {
-      try {
-        var tokenResponse = await msalInstance.acquireTokenSilent({ scopes: ${scopesJson}, account: accounts[0] });
-        await __fetchGraphMetadata(tokenResponse.accessToken);
-      } catch(silentErr) {
-        console.warn('[MSAL] Could not acquire token silently:', silentErr);
-        // Still prefill fields that have static metadata
-        __prefillFormFields();
-      }
-    } else {
-      // No authenticated user yet – still apply static metadata prefills
-      __prefillFormFields();
-    }
-  });
-
+${msalBootstrap}
   // Initialise form handlers, static metadata prefills, and generic API
   // preloads once the DOM is ready.  Graph API prefills happen later, inside
   // __fetchGraphMetadata, which runs after MSAL token acquisition.

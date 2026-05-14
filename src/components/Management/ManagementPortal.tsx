@@ -177,16 +177,22 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
                           {site.pages.length} page{site.pages.length !== 1 ? 's' : ''} •{' '}
                           <span
                             className={`font-medium ${
-                              site.azureConfig.cloud === 'dod'
+                              site.azureConfig.deploymentEnvironment === 'generic'
+                                ? 'text-gray-600'
+                                : site.azureConfig.cloud === 'dod'
                                 ? 'text-red-600'
                                 : site.azureConfig.cloud === 'government'
                                 ? 'text-amber-600'
                                 : 'text-blue-600'
                             }`}
                           >
-                            {CLOUD_LABELS[site.azureConfig.cloud]}
+                            {site.azureConfig.deploymentEnvironment === 'generic'
+                              ? 'Generic'
+                              : CLOUD_LABELS[site.azureConfig.cloud]}
                           </span>{' '}
-                          — {site.azureConfig.region}
+                          {site.azureConfig.deploymentEnvironment !== 'generic' && (
+                            <>— {site.azureConfig.region}</>
+                          )}
                         </p>
                       </div>
                     </button>

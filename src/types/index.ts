@@ -39,9 +39,13 @@ export interface ApiPreloadQuery {
   includeAuthHeader?: boolean;
 }
 
+// ─── Deployment Environment ──────────────────────────────────────────────────
+
+export type DeploymentEnvironment = 'azure' | 'generic';
+
 // ─── Azure Region ────────────────────────────────────────────────────────────
 
-export type AzureCloud = 'commercial' | 'government' | 'dod' | 'china';
+export type AzureCloud = 'commercial' | 'government' | 'dod';
 
 export interface AzureRegion {
   id: string;
@@ -54,6 +58,8 @@ export interface AzureRegion {
 // ─── Azure / MSAL Configuration ──────────────────────────────────────────────
 
 export interface AzureConfig {
+  /** Deployment target: 'azure' (Azure Static Web Apps) or 'generic' (any static host) */
+  deploymentEnvironment: DeploymentEnvironment;
   /** Azure Tenant (Directory) ID */
   tenantId: string;
   /** Azure AD Application (Client) ID */

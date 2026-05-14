@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, ChevronDown, Plus, Trash2 } from 'lucide-react';
-import type { AzureConfig, AzureCloud, GraphApiQuery, MetadataField, ApiPreloadQuery } from '../../types';
+import type { AzureConfig, AzureCloud, DeploymentEnvironment, GraphApiQuery, MetadataField, ApiPreloadQuery } from '../../types';
 import { DEFAULT_AZURE_CONFIG } from '../../contexts/SiteContext';
 import { AZURE_REGIONS, CLOUD_LABELS, getAuthorityUrl } from '../../utils/azureRegions';
 
@@ -13,7 +13,7 @@ interface ConfigModalProps {
   mode?: 'create' | 'edit';
 }
 
-const CLOUD_OPTIONS: AzureCloud[] = ['commercial', 'government', 'dod', 'china'];
+const CLOUD_OPTIONS: AzureCloud[] = ['commercial', 'government', 'dod'];
 
 /**
  * ConfigModal is rendered only when open (parents conditionally mount it).
@@ -35,6 +35,8 @@ export default function ConfigModal({
   const [activeTab, setActiveTab] = useState<'general' | 'auth' | 'region' | 'forms' | 'data'>('general');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const isAzure = config.deploymentEnvironment !== 'generic';
+
   function updateConfig<K extends keyof AzureConfig>(key: K, value: AzureConfig[K]) {
     setConfig((prev) => ({ ...prev, [key]: value }));
     setErrors((e) => {
@@ -42,6 +44,14 @@ export default function ConfigModal({
       delete next[key];
       return next;
     });
+  }
+
+  function handleDeploymentEnvironmentChange(env: DeploymentEnvironment) {
+    setConfig((prev) => ({ ...prev, deploymentEnvironment: env }));
+    // Switch away from Azure-only tabs when changing to generic
+    if (env === 'generic' && (activeTab === 'auth' || activeTab === 'region')) {
+      setActiveTab('general');
+    }
   }
 
   function handleCloudChange(cloud: AzureCloud) {
@@ -56,10 +66,12 @@ export default function ConfigModal({
   function validate(): boolean {
     const errs: Record<string, string> = {};
     if (!name.trim()) errs.name = 'Site name is required';
-    if (!config.tenantId.trim()) errs.tenantId = 'Tenant ID is required';
-    if (!config.clientId.trim()) errs.clientId = 'Client ID is required';
-    if (!config.subscriptionId.trim()) errs.subscriptionId = 'Subscription ID is required';
-    if (!config.redirectUri.trim()) errs.redirectUri = 'Redirect URI is required';
+    if (isAzure) {
+      if (!config.tenantId.trim()) errs.tenantId = 'Tenant ID is required';
+      if (!config.clientId.trim()) errs.clientId = 'Client ID is required';
+      if (!config.subscriptionId.trim()) errs.subscriptionId = 'Subscription ID is required';
+      if (!config.redirectUri.trim()) errs.redirectUri = 'Redirect URI is required';
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -99,7 +111,7 @@ export default function ConfigModal({
 
         {/* Tabs */}
         <div className="flex border-b px-6">
-          {(['general', 'auth', 'region', 'data', 'forms'] as const).map((tab) => (
+          {(['general', ...(isAzure ? ['auth', 'region'] : []), 'data', 'forms'] as const).map((tab) => (
             <button key={tab} className={tabClass(tab)} onClick={() => setActiveTab(tab)}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
@@ -132,33 +144,60 @@ export default function ConfigModal({
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
               </Field>
-              <Field label="Azure Subscription ID" error={errors.subscriptionId} required>
-                <input
-                  type="text"
-                  value={config.subscriptionId}
-                  onChange={(e) => updateConfig('subscriptionId', e.target.value)}
-                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  className={inputCls(!!errors.subscriptionId)}
-                />
+              <Field label="Deployment Environment">
+                <div className="flex gap-3">
+                  {(['azure', 'generic'] as const).map((env) => (
+                    <label key={env} className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="radio"
+                        name="deploymentEnvironment"
+                        value={env}
+                        checked={config.deploymentEnvironment === env}
+                        onChange={() => handleDeploymentEnvironmentChange(env)}
+                        className="accent-blue-600"
+                        aria-label={env === 'azure' ? 'Azure Static Web Apps' : 'Generic static hosting'}
+                      />
+                      <span className="text-sm text-gray-700 capitalize">{env}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                  {config.deploymentEnvironment === 'generic'
+                    ? 'Generic: deploy to any static hosting provider. Azure AD and region settings are not required.'
+                    : 'Azure: deploy to Azure Static Web Apps with Azure AD authentication.'}
+                </p>
               </Field>
-              <Field label="Resource Group">
-                <input
-                  type="text"
-                  value={config.resourceGroup}
-                  onChange={(e) => updateConfig('resourceGroup', e.target.value)}
-                  placeholder="my-resource-group"
-                  className={inputCls(false)}
-                />
-              </Field>
-              <Field label="Deployment Token (optional)">
-                <input
-                  type="password"
-                  value={config.deploymentToken ?? ''}
-                  onChange={(e) => updateConfig('deploymentToken', e.target.value || undefined)}
-                  placeholder="Azure SWA deployment token"
-                  className={inputCls(false)}
-                />
-              </Field>
+              {isAzure && (
+                <>
+                  <Field label="Azure Subscription ID" error={errors.subscriptionId} required>
+                    <input
+                      type="text"
+                      value={config.subscriptionId}
+                      onChange={(e) => updateConfig('subscriptionId', e.target.value)}
+                      placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                      className={inputCls(!!errors.subscriptionId)}
+                    />
+                  </Field>
+                  <Field label="Resource Group">
+                    <input
+                      type="text"
+                      value={config.resourceGroup}
+                      onChange={(e) => updateConfig('resourceGroup', e.target.value)}
+                      placeholder="my-resource-group"
+                      className={inputCls(false)}
+                    />
+                  </Field>
+                  <Field label="Deployment Token (optional)">
+                    <input
+                      type="password"
+                      value={config.deploymentToken ?? ''}
+                      onChange={(e) => updateConfig('deploymentToken', e.target.value || undefined)}
+                      placeholder="Azure SWA deployment token"
+                      className={inputCls(false)}
+                    />
+                  </Field>
+                </>
+              )}
             </>
           )}
 
