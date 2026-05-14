@@ -1,7 +1,77 @@
 import JSZip from 'jszip';
-import type { ApiBuilderConfig, TableDefinition, ColumnType } from '../types';
+import type { ApiBuilderConfig, ApiBuilderExportBundle, TableDefinition, ColumnType } from '../types';
 
-// ─── Public entry-point ───────────────────────────────────────────────────────
+// ─── Public entry-points ──────────────────────────────────────────────────────
+
+const API_EXPORT_VERSION = '1.0';
+
+/**
+ * Serialises an ApiBuilderConfig to a JSON export bundle string.
+ */
+export function exportApiConfigAsJson(cfg: ApiBuilderConfig): string {
+  const bundle: ApiBuilderExportBundle = {
+    version: API_EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+    config: cfg,
+  };
+  return JSON.stringify(bundle, null, 2);
+}
+
+/**
+ * Triggers a browser download for a JSON export of the API config.
+ */
+export function downloadApiConfigJson(cfg: ApiBuilderConfig): void {
+  const json = exportApiConfigAsJson(cfg);
+  const blob = new Blob([json], { type: 'application/json' });
+  triggerDownload(blob, `${sanitise(cfg.serviceName)}-api-config.json`);
+}
+
+/**
+ * Parses an API Builder config export bundle from a File.
+ * Accepts both the wrapped `ApiBuilderExportBundle` format and a bare
+ * `ApiBuilderConfig` object for convenience.
+ * Returns the config or throws an error if the format is invalid.
+ */
+export async function importApiConfigFromFile(file: File): Promise<ApiBuilderConfig> {
+  const text = await file.text();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('File is not valid JSON.');
+  }
+
+  if (typeof parsed !== 'object' || parsed === null) {
+    throw new Error('Invalid API config file.');
+  }
+
+  // Accept both the export bundle { version, exportedAt, config } and a raw config.
+  const candidate =
+    'config' in parsed && 'version' in parsed
+      ? (parsed as ApiBuilderExportBundle).config
+      : parsed;
+
+  if (!isApiBuilderConfig(candidate)) {
+    throw new Error(
+      'File does not contain a valid API Builder configuration. ' +
+        'Expected fields: serviceName, version, baseUrl, tables.',
+    );
+  }
+
+  return candidate;
+}
+
+/** Type-guard for ApiBuilderConfig. */
+function isApiBuilderConfig(value: unknown): value is ApiBuilderConfig {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.serviceName === 'string' &&
+    typeof v.version === 'string' &&
+    typeof v.baseUrl === 'string' &&
+    Array.isArray(v.tables)
+  );
+}
 
 /**
  * Generates a ZIP archive containing:

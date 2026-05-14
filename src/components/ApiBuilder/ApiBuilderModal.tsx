@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { X, Plus, Trash2, Download, ChevronDown, ChevronRight, FileText } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { X, Plus, Trash2, Download, Upload, Save, ChevronDown, ChevronRight, FileText } from 'lucide-react';
 import type { ApiBuilderConfig, TableDefinition, TableColumn, ColumnType } from '../../types';
-import { downloadApiBuilderZip } from '../../utils/apiBuilder';
+import { downloadApiBuilderZip, downloadApiConfigJson, importApiConfigFromFile } from '../../utils/apiBuilder';
 import { parseSqlTableDef } from '../../utils/sqlTableParser';
 
 interface ApiBuilderModalProps {
@@ -59,6 +59,8 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
   const [importText, setImportText] = useState<Record<number, string>>({});
   /** Per-table: error message from the last import attempt. */
   const [importError, setImportError] = useState<Record<number, string>>({});
+  /** Ref for the hidden file input used to import a saved config. */
+  const importConfigRef = useRef<HTMLInputElement>(null);
 
   function clearError(key: string) {
     setErrors((prev) => {
@@ -181,6 +183,44 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
     setImportOpen((prev) => ({ ...prev, [tIdx]: false }));
   }
 
+  // ── Import / Export config ────────────────────────────────────────────────
+
+  function loadConfig(cfg: ApiBuilderConfig) {
+    setServiceName(cfg.serviceName);
+    setVersion(cfg.version);
+    setBaseUrl(cfg.baseUrl);
+    setTables(cfg.tables);
+    setExpandedTable(0);
+    setErrors({});
+    setImportOpen({});
+    setImportText({});
+    setImportError({});
+  }
+
+  async function handleImportConfig(file: File) {
+    try {
+      const cfg = await importApiConfigFromFile(file);
+      loadConfig(cfg);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      alert(
+        `Import failed: ${message}\n\n` +
+          'The file must be a JSON export saved with the "Save Config" button, ' +
+          'or a plain JSON object with the fields: serviceName, version, baseUrl, tables.',
+      );
+    }
+  }
+
+  function handleExportConfig() {
+    const cfg: ApiBuilderConfig = {
+      serviceName: serviceName.trim(),
+      version: version.trim(),
+      baseUrl: baseUrl.trim(),
+      tables,
+    };
+    downloadApiConfigJson(cfg);
+  }
+
   // ── Generate & Download ───────────────────────────────────────────────────
 
   async function handleGenerate() {
@@ -213,9 +253,40 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
               Define your data tables and generate an OpenAPI spec + .NET 8 isolated Function App.
             </p>
           </div>
-          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 text-gray-500" aria-label="Close">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Hidden file input for config import */}
+            <input
+              ref={importConfigRef}
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImportConfig(file);
+                // Reset so the same file can be re-selected if needed.
+                e.target.value = '';
+              }}
+            />
+            <button
+              onClick={() => importConfigRef.current?.click()}
+              title="Import a previously saved API config"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              Import Config
+            </button>
+            <button
+              onClick={handleExportConfig}
+              title="Save current config as JSON"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Save className="w-4 h-4" />
+              Save Config
+            </button>
+            <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 text-gray-500" aria-label="Close">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Body */}
