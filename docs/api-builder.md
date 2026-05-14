@@ -14,6 +14,7 @@ The API Builder generates a complete, contract-first Azure Functions API from a 
 - [Save and Load Configurations](#save-and-load-configurations)
 - [Generated Output](#generated-output)
 - [Generated Code Reference](#generated-code-reference)
+- [Connecting to SQL Server](#connecting-to-sql-server)
 - [Deploying the Generated API](#deploying-the-generated-api)
 
 ---
@@ -181,9 +182,24 @@ A complete OpenAPI 3.0.3 spec including:
 
 ### `{Table}Functions.cs`
 
-Each file contains a static class with five HTTP trigger methods corresponding to the five operations above. Routes use the plural, camelCase form of the table name (e.g. `Product` → `products`).
+Each file contains a class with five HTTP trigger methods corresponding to the five operations above. Routes use the plural, camelCase form of the table name (e.g. `Product` → `products`).
 
-The generated functions are scaffolded stubs — the HTTP wiring, request parsing, and response serialisation are in place, but the data access layer is left for you to implement.
+The generated functions are **scaffolded stubs**. The HTTP routing, request deserialisation, response shaping, error envelopes, and OpenAPI decorators are all in place and fully functional. Each data operation contains a `// TODO` comment marking where you must add data access logic:
+
+```csharp
+// TODO: replace with real data-access logic
+var items = Array.Empty<Product>();
+
+// TODO: persist item and assign generated primary key
+
+// TODO: fetch by primary key
+
+// TODO: update record
+
+// TODO: delete record
+```
+
+Until those stubs are filled in, the API compiles and runs — list endpoints return empty arrays and get/update/delete return `404 Not Found`. See [Connecting to SQL Server](#connecting-to-sql-server) for how to wire a data layer.
 
 ### `Models/{Table}.cs`
 
@@ -206,6 +222,181 @@ Targets `net8.0` with the following key package references:
 | `Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore` | ASP.NET Core HTTP binding |
 | `Microsoft.Azure.Functions.Worker.Extensions.OpenApi` | OpenAPI middleware |
 | `Microsoft.ApplicationInsights.WorkerService` | Telemetry |
+
+---
+
+## Connecting to SQL Server
+
+The API Builder generates the full HTTP surface and leaves data access as `// TODO` stubs. This is intentional — SQL schema names, connection patterns, authentication method, and pagination strategy vary too much to generate safely without additional input.
+
+The generated `Program.cs` uses standard .NET 8 dependency injection, so any data access library drops in the same way.
+
+---
+
+### Step 1 — Add a data access package
+
+Add one of the following to `{ServiceName}.csproj`:
+
+**Entity Framework Core** (recommended for most projects):
+```xml
+<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.*" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.*" PrivateAssets="all" />
+```
+
+**Dapper** (lightweight, raw SQL):
+```xml
+<PackageReference Include="Dapper" Version="2.*" />
+<PackageReference Include="Microsoft.Data.SqlClient" Version="5.*" />
+```
+
+**Raw ADO.NET** (no extra packages — `Microsoft.Data.SqlClient` is already available in the Azure Functions runtime).
+
+---
+
+### Step 2 — Store the connection string
+
+Add the connection string to `local.settings.json` (already templated in the generated output):
+
+```json
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "SqlConnectionString": "Server=<server>.database.windows.net;Database=<db>;Authentication=Active Directory Default;"
+  }
+}
+```
+
+> **Recommendation:** Use **Managed Identity** (`Authentication=Active Directory Default`) in all non-local environments rather than a username and password. Grant the Function App's system-assigned identity the `db_datareader` / `db_datawriter` roles on the target database.
+
+For local development, use SQL auth or Azure CLI credentials (`Authentication=Active Directory Default` will pick up `az login`).
+
+---
+
+### Step 3 — Register the data context in `Program.cs`
+
+**EF Core:**
+```csharp
+builder.Services.AddDbContext<AppDbContext>(opts =>
+    opts.UseSqlServer(Environment.GetEnvironmentVariable("SqlConnectionString")));
+```
+
+**Dapper / ADO.NET:**
+```csharp
+builder.Services.AddScoped<IDbConnection>(_ =>
+    new Microsoft.Data.SqlClient.SqlConnection(
+        Environment.GetEnvironmentVariable("SqlConnectionString")));
+```
+
+---
+
+### Step 4 — Replace the `// TODO` stubs
+
+Update the generated primary constructor in each `{Table}Functions.cs` to accept the injected context, then fill in the stubs.
+
+**EF Core example (`Product` table):**
+
+```csharp
+public class ProductFunctions(ILogger<ProductFunctions> logger, AppDbContext db)
+{
+    // GET /v1/myService/products
+    public IActionResult ListProducts(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "...")] HttpRequest req)
+    {
+        var top  = int.TryParse(req.Query["$top"],  out var t) ? Math.Clamp(t, 1, 200) : 50;
+        var skip = int.TryParse(req.Query["$skip"], out var s) ? Math.Max(s, 0) : 0;
+
+        var items = db.Products.Skip(skip).Take(top).ToList();
+        var total = db.Products.Count();
+        var result = new PagedResult<Product>
+        {
+            Value    = items,
+            NextLink = (skip + top < total)
+                ? $"{req.Scheme}://{req.Host}{req.Path}?$skip={skip + top}&$top={top}"
+                : null,
+        };
+        return new OkObjectResult(result);
+    }
+
+    // POST /v1/myService/products
+    public async Task<IActionResult> CreateProduct(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "...")] HttpRequest req)
+    {
+        // ... deserialise item (already scaffolded) ...
+        item.Id = Guid.NewGuid();
+        db.Products.Add(item);
+        await db.SaveChangesAsync();
+        return new CreatedAtRouteResult(null, item);
+    }
+
+    // GET /v1/myService/products/{id}
+    public IActionResult GetProductById(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "...")] HttpRequest req,
+        Guid id)
+    {
+        var item = db.Products.Find(id);
+        return item is null ? new NotFoundResult() : new OkObjectResult(item);
+    }
+
+    // PUT /v1/myService/products/{id}
+    public async Task<IActionResult> ReplaceProduct(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "...")] HttpRequest req,
+        Guid id)
+    {
+        // ... deserialise item (already scaffolded) ...
+        var existing = db.Products.Find(id);
+        if (existing is null) return new NotFoundResult();
+        db.Entry(existing).CurrentValues.SetValues(item!);
+        await db.SaveChangesAsync();
+        return new OkObjectResult(existing);
+    }
+
+    // DELETE /v1/myService/products/{id}
+    public async Task<IActionResult> DeleteProduct(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "...")] HttpRequest req,
+        Guid id)
+    {
+        var existing = db.Products.Find(id);
+        if (existing is null) return new NotFoundResult();
+        db.Products.Remove(existing);
+        await db.SaveChangesAsync();
+        return new NoContentResult();
+    }
+}
+```
+
+---
+
+### Data access library comparison
+
+| | EF Core | Dapper | Raw ADO.NET |
+|---|---|---|---|
+| **Setup effort** | Medium (DbContext + migrations) | Low | Low |
+| **Query style** | LINQ | Raw SQL with mapping | Raw SQL + manual mapping |
+| **Schema migrations** | Built-in (`dotnet ef migrations`) | Manual | Manual |
+| **Performance** | Good (with `.AsNoTracking()`) | Excellent | Excellent |
+| **Best for** | New projects, code-first schema | Existing DB, stored procs | Maximum control |
+
+**Recommendation:** Use **EF Core** when you own the schema and want migrations managed in code. Use **Dapper** when connecting to an existing database or when stored procedures are the primary access pattern.
+
+---
+
+### Authentication to SQL Server
+
+| Environment | Recommended method |
+|---|---|
+| Local development | `Authentication=Active Directory Default` (picks up `az login`) or SQL auth |
+| Azure (same tenant) | System-assigned Managed Identity — no credentials in config |
+| Azure (cross-tenant) | User-assigned Managed Identity or service principal with certificate |
+
+To grant a Function App's Managed Identity access to Azure SQL:
+
+```sql
+CREATE USER [<function-app-name>] FROM EXTERNAL PROVIDER;
+ALTER ROLE db_datareader ADD MEMBER [<function-app-name>];
+ALTER ROLE db_datawriter ADD MEMBER [<function-app-name>];
+```
 
 ---
 
