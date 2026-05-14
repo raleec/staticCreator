@@ -95,7 +95,7 @@ export function generateOpenApiSpec(cfg: ApiBuilderConfig): string {
     const schemaName = table.name;
     lines.push(`    ${schemaName}:`);
     lines.push('      type: object');
-    const required = table.columns.filter((c) => !c.nullable && !c.isPrimaryKey);
+    const required = table.columns.filter((c) => !c.nullable);
     if (required.length > 0) {
       lines.push('      required:');
       for (const col of required) {
@@ -412,7 +412,8 @@ function generateModelClass(cfg: ApiBuilderConfig, table: TableDefinition): stri
     .map((col) => {
       const csType = toCSharpType(col.type, col.nullable);
       const required = !col.nullable && !col.isPrimaryKey ? '\n    [System.ComponentModel.DataAnnotations.Required]' : '';
-      return `${required}\n    public ${csType} ${col.name} { get; set; }${col.type === 'string' && !col.nullable ? ' = string.Empty;' : col.nullable ? ' = null;' : ';'}`;
+      const initializer = propertyInitializer(col.type, col.nullable);
+      return `${required}\n    public ${csType} ${col.name} { get; set; }${initializer}`;
     })
     .join('\n');
 
@@ -423,6 +424,12 @@ public class ${table.name}
 {${props}
 }
 `;
+}
+
+function propertyInitializer(type: ColumnType, nullable: boolean): string {
+  if (nullable) return ' = null;';
+  if (type === 'string') return ' = string.Empty;';
+  return ';';
 }
 
 function generateFunctionsClass(cfg: ApiBuilderConfig, table: TableDefinition): string {
@@ -540,6 +547,7 @@ public class ${table.name}Functions(ILogger<${table.name}Functions> logger)
         ${pkCsType} ${pkName})
     {
         logger.LogInformation("Replace${table.name}: {Id}", ${pkName});
+        var correlationId = GetOrCreateCorrelationId(req);
         ${table.name}? item;
         try
         {
@@ -548,11 +556,11 @@ public class ${table.name}Functions(ILogger<${table.name}Functions> logger)
         }
         catch
         {
-            return BadRequestError("InvalidJson", "Request body could not be parsed as JSON.", Guid.NewGuid().ToString());
+            return BadRequestError("InvalidJson", "Request body could not be parsed as JSON.", correlationId);
         }
 
         if (item is null)
-            return BadRequestError("EmptyBody", "Request body is required.", Guid.NewGuid().ToString());
+            return BadRequestError("EmptyBody", "Request body is required.", correlationId);
 
         // TODO: update record
         return new OkObjectResult(item);

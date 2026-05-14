@@ -53,6 +53,14 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
   const [generating, setGenerating] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  function clearError(key: string) {
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
+
   // ── Validation ────────────────────────────────────────────────────────────
 
   function validate(): boolean {
@@ -192,7 +200,7 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
                 <input
                   type="text"
                   value={serviceName}
-                  onChange={(e) => { setServiceName(e.target.value); setErrors((p) => { const n={...p}; delete n.serviceName; return n; }); }}
+                  onChange={(e) => { setServiceName(e.target.value); clearError('serviceName'); }}
                   placeholder="MyService"
                   className={`w-full text-sm border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.serviceName ? 'border-red-400' : 'border-gray-300'}`}
                 />
@@ -206,7 +214,7 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
                 <input
                   type="text"
                   value={version}
-                  onChange={(e) => { setVersion(e.target.value); setErrors((p) => { const n={...p}; delete n.version; return n; }); }}
+                  onChange={(e) => { setVersion(e.target.value); clearError('version'); }}
                   placeholder="v1"
                   className={`w-full text-sm border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.version ? 'border-red-400' : 'border-gray-300'}`}
                 />
@@ -220,7 +228,7 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
                 <input
                   type="text"
                   value={baseUrl}
-                  onChange={(e) => { setBaseUrl(e.target.value); setErrors((p) => { const n={...p}; delete n.baseUrl; return n; }); }}
+                  onChange={(e) => { setBaseUrl(e.target.value); clearError('baseUrl'); }}
                   placeholder="https://api.example.com"
                   className={`w-full text-sm border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.baseUrl ? 'border-red-400' : 'border-gray-300'}`}
                 />
