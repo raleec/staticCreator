@@ -24,14 +24,13 @@ function mapSqlType(sqlType: string): ColumnType {
  * capitalise the next letter).
  */
 function toPascalCase(name: string): string {
-  // Split on underscores or transitions between lower→upper for snake_case /
-  // mixed-case names, then capitalise each segment and join.
+  // Split on underscores for snake_case names, capitalise each segment, and join.
   const cleaned = name.replace(/[^a-zA-Z0-9_]/g, '');
   if (!cleaned) return 'Column';
   return cleaned
     .split('_')
     .filter(Boolean)
-    .map((seg) => seg.charAt(0).toUpperCase() + seg.slice(1))
+    .map((seg) => seg.charAt(0).toUpperCase() + seg.slice(1).toLowerCase())
     .join('');
 }
 
