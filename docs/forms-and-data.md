@@ -113,7 +113,6 @@ Graph API queries run after MSAL successfully acquires an access token. They use
 | Commercial | `https://graph.microsoft.com/v1.0` |
 | Government | `https://graph.microsoft.us/v1.0` |
 | DoD | `https://dod-graph.microsoft.us/v1.0` |
-| China | `https://microsoftgraph.chinacloudapi.cn/v1.0` |
 
 **Example query configuration:**
 

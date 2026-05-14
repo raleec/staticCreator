@@ -23,11 +23,12 @@ This document describes every field in the StaticCreator site configuration (the
 ```ts
 interface AzureConfig {
   // ── General ──────────────────────────────────────────────
+  deploymentEnvironment:   DeploymentEnvironment; // 'azure' | 'generic'
   tenantId:                string;
   clientId:                string;
   subscriptionId:          string;
   resourceGroup:           string;
-  cloud:                   AzureCloud;       // 'commercial' | 'government' | 'dod' | 'china'
+  cloud:                   AzureCloud;       // 'commercial' | 'government' | 'dod'
   region:                  string;
   deploymentToken?:        string;
 
@@ -196,7 +197,6 @@ Override the automatically computed authority URL. Leave blank to use the defaul
 | Commercial | `https://login.microsoftonline.com/<tenantId>` |
 | Government | `https://login.microsoftonline.us/<tenantId>` |
 | DoD | `https://login.microsoftonline.us/<tenantId>` |
-| China | `https://login.chinacloudapi.cn/<tenantId>` |
 
 Use the custom field for non-standard authority URLs such as B2C tenants or custom ADFS endpoints.
 
@@ -213,7 +213,6 @@ Selects the Azure sovereign cloud for the deployment.
 | `commercial` | Azure Commercial | `login.microsoftonline.com` | `graph.microsoft.com` |
 | `government` | Azure Government (MAG) | `login.microsoftonline.us` | `graph.microsoft.us` |
 | `dod` | Azure DoD | `login.microsoftonline.us` | `dod-graph.microsoft.us` |
-| `china` | Azure China (21Vianet) | `login.chinacloudapi.cn` | `microsoftgraph.chinacloudapi.cn` |
 
 Changing the cloud automatically updates the region list and resets the selected region to the first available one for that cloud.
 
@@ -230,8 +229,6 @@ Supported regions by cloud (as of the time of writing):
 **Government**: US Gov Arizona, US Gov Texas, US Gov Virginia
 
 **DoD**: US DoD Central, US DoD East
-
-**China**: No Static Web Apps support currently
 
 ---
 

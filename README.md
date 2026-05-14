@@ -16,6 +16,7 @@ Build pages visually, configure Azure AD authentication, hook up REST API forms,
 - [Azure App Registration Setup](#azure-app-registration-setup)
 - [Building Pages](#building-pages)
 - [Forms & Data Integration](#forms--data-integration)
+- [API Builder](#api-builder)
 - [Exporting Your Site](#exporting-your-site)
 - [Deploying to Azure Static Web Apps](#deploying-to-azure-static-web-apps)
 - [Data Persistence](#data-persistence)
@@ -26,13 +27,14 @@ Build pages visually, configure Azure AD authentication, hook up REST API forms,
 
 - **Visual page builder** powered by [GrapesJS](https://grapesjs.com/)
 - **Azure AD / MSAL authentication** baked into every exported page
-- Support for **Azure Commercial, Government (MAG), DoD, and China** clouds
+- Support for **Azure Commercial, Government (MAG), and DoD** clouds
 - **REST API forms** — submit form data to any API endpoint, optionally with an MSAL Bearer token
 - **API preloading** — fetch data on page load and pre-fill form fields automatically
 - **Microsoft Graph API** integration for user metadata
 - **Static metadata fields** for injecting fixed key/value data into forms
 - **Export as ZIP** — generates standalone HTML files with an Azure SWA routing config
 - **Import/export** site configurations as JSON for backup and sharing
+- **API Builder** — generates OpenAPI 3.x contracts and complete .NET 8 Azure Functions projects from a visual table designer, with SQL `CREATE TABLE` import support
 - All site data stored locally in the browser (no server required)
 
 ---
@@ -80,6 +82,7 @@ The landing screen where you manage sites and pages.
 
 - **New Site** — opens the configuration modal to create a new site with Azure credentials
 - **Import Site** — load a previously exported `.json` bundle
+- **API Builder** — opens the API Builder to design tables and generate a .NET 8 Azure Functions API project
 - **Export as JSON** — download the full site configuration and page data
 - **Export as ZIP** — download a ready-to-deploy archive
 - **Edit configuration** (gear icon) — update Azure settings for an existing site
@@ -129,13 +132,12 @@ The configuration modal has five tabs:
 The computed authority is displayed below the Custom Authority field:
 - **Commercial**: `https://login.microsoftonline.com/<tenantId>`
 - **Government / DoD**: `https://login.microsoftonline.us/<tenantId>`
-- **China**: `https://login.chinacloudapi.cn/<tenantId>`
 
 ### Region Tab
 
 | Field | Description |
 |---|---|
-| **Cloud Environment** | `Azure Commercial`, `Azure Government (MAG)`, `Azure DoD`, or `Azure China (21Vianet)` |
+| **Cloud Environment** | `Azure Commercial`, `Azure Government (MAG)`, or `Azure DoD` |
 | **Region** | Azure region for the Static Web App. Regions that do not support SWA are shown but disabled. |
 
 ### Forms Tab
@@ -217,6 +219,61 @@ See [docs/forms-and-data.md](docs/forms-and-data.md) for the complete reference 
 - Microsoft Graph API integration
 - Static metadata fields and `__pageMetadata`
 - The `data-metadata-prefill` attribute
+
+---
+
+## API Builder
+
+The **API Builder** is a standalone tool accessible from the **API Builder** button in the Management Portal header. It generates a complete, contract-first Azure Functions API from a visual table designer — no site is required.
+
+### What it generates
+
+For each configured service, clicking **Generate & Download** produces a ZIP archive containing:
+
+| File | Description |
+|---|---|
+| `openapi.yaml` | OpenAPI 3.0.3 spec (contract-first) |
+| `{ServiceName}.csproj` | .NET 8 isolated Functions project file |
+| `Program.cs` | Host builder with OpenAPI middleware registration |
+| `host.json` | Functions host configuration |
+| `local.settings.json` | Local dev settings template |
+| `Models/{Table}.cs` | C# model class per table |
+| `Functions/{Table}Functions.cs` | Full CRUD HTTP trigger Functions per table |
+
+### Workflow
+
+1. Click **API Builder** in the Management Portal header
+2. Enter a **Service Name**, **Version** (e.g. `v1`), and **Base URL**
+3. Add one or more tables and define their columns (name, type, nullable, primary key)
+4. Optionally use **Import from SQL** on any table to auto-populate columns from a pasted `CREATE TABLE` block
+5. Click **Generate & Download** to export the ZIP
+6. Use **Save Config** / **Load Config** to persist and reload API configurations as JSON
+
+### Column types
+
+| UI Label | C# type | SQL / OpenAPI type |
+|---|---|---|
+| String (varchar) | `string` | `nvarchar` / `string` |
+| Integer (int) | `int` | `int` / `integer` |
+| Decimal (numeric) | `decimal` | `decimal` / `number` |
+| Boolean (bit) | `bool` | `bit` / `boolean` |
+| DateTime (datetimeoffset) | `DateTimeOffset` | `datetimeoffset` / `string (date-time)` |
+| GUID (uniqueidentifier) | `Guid` | `uniqueidentifier` / `string (uuid)` |
+
+### SQL Import
+
+Each table has an **Import from SQL** panel. Paste a raw column-definition block copied from SSMS or a `.sql` file:
+
+```sql
+[ProductName] [nvarchar](255) NOT NULL,
+[Price]       [decimal](10, 2) NOT NULL,
+[CreatedAt]   [datetimeoffset] NOT NULL,
+[IsActive]    [bit] NULL
+```
+
+StaticCreator parses the column names and maps SQL types to the nearest supported type. Existing primary key columns are preserved and deduplicated. Unknown SQL types fall back to `string`.
+
+> See [docs/api-builder.md](docs/api-builder.md) for the full API Builder reference.
 
 ---
 
