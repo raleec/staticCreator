@@ -9,9 +9,11 @@ import {
   Globe,
   ChevronRight,
   Archive,
+  Code2,
 } from 'lucide-react';
 import { useSites } from '../../contexts/SiteContext';
 import ConfigModal from '../Configuration/ConfigModal';
+import ApiBuilderModal from '../ApiBuilder/ApiBuilderModal';
 import type { AzureConfig, Site } from '../../types';
 import { downloadSiteJson, downloadSiteZip, importSiteFromFile } from '../../utils/siteExport';
 import { CLOUD_LABELS } from '../../utils/azureRegions';
@@ -34,6 +36,7 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
   } = useSites();
 
   const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [apiBuilderOpen, setApiBuilderOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
   const [expandedSiteId, setExpandedSiteId] = useState<string | null>(null);
   const [newPageName, setNewPageName] = useState('');
@@ -136,6 +139,13 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
             >
               <Upload className="w-4 h-4" />
               Import Site
+            </button>
+            <button
+              onClick={() => setApiBuilderOpen(true)}
+              className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Code2 className="w-4 h-4" />
+              API Builder
             </button>
             <button
               onClick={openCreate}
@@ -324,6 +334,11 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
           onSave={handleSave}
           mode={editingSite ? 'edit' : 'create'}
         />
+      )}
+
+      {/* API Builder Modal */}
+      {apiBuilderOpen && (
+        <ApiBuilderModal onClose={() => setApiBuilderOpen(false)} />
       )}
 
       {/* Delete Confirm Dialog */}

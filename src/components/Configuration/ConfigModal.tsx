@@ -111,7 +111,7 @@ export default function ConfigModal({
 
         {/* Tabs */}
         <div className="flex border-b px-6">
-          {(['general', ...(isAzure ? ['auth', 'region'] : []), 'data', 'forms'] as const).map((tab) => (
+          {(['general', ...(isAzure ? ['auth', 'region'] : []), 'data', 'forms'] as Array<typeof activeTab>).map((tab) => (
             <button key={tab} className={tabClass(tab)} onClick={() => setActiveTab(tab)}>
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
