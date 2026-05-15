@@ -21,6 +21,7 @@ import {
   DialogActions,
   Input,
   Text,
+  tokens,
 } from '@fluentui/react-components';
 import { useSites } from '../../contexts/SiteContext';
 import ConfigModal from '../Configuration/ConfigModal';
@@ -361,7 +362,7 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
               <Button appearance="secondary" onClick={() => setDeleteConfirm(null)}>
                 Cancel
               </Button>
-              <Button appearance="primary" onClick={executeDelete} style={{ backgroundColor: '#d13438', borderColor: '#d13438' }}>
+              <Button appearance="primary" onClick={executeDelete} style={{ backgroundColor: tokens.colorPaletteRedBackground3, borderColor: tokens.colorPaletteRedBackground3 }}>
                 Delete
               </Button>
             </DialogActions>

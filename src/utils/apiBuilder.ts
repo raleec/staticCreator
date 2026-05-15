@@ -591,7 +591,7 @@ public class ${table.name}Functions(ILogger<${table.name}Functions> logger, AppD
     {
         logger.LogInformation("List${table.name}s invoked");
 
-        var top  = int.TryParse(req.Query["\\$top"],  out var t) ? Math.Clamp(t, 1, 200) : 50;
+        var top  = int.TryParse(req.Query["\\$top"], out var t) ? Math.Clamp(t, 1, 200) : 50;
         var skip = int.TryParse(req.Query["\\$skip"], out var s) ? Math.Max(s, 0) : 0;
 
         var total = await db.${table.name}s.CountAsync();

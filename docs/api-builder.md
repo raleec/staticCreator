@@ -281,7 +281,7 @@ All five CRUD operations per table are immediately functional once the database 
 
 ### Data access library comparison
 
-| | EF Core (generated) | Dapper | Raw ADO.NET |
+| Feature | EF Core (generated) | Dapper | Raw ADO.NET |
 |---|---|---|---|
 | **Setup effort** | None — already generated | Low | Low |
 | **Query style** | LINQ | Raw SQL with mapping | Raw SQL + manual mapping |
