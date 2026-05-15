@@ -1,9 +1,93 @@
 @import "tailwindcss";
 
-/* GrapesJS custom overrides */
+/* ── GrapesJS: reset panel chrome so our Fluent sidebar shows through ───── */
 .gjs-editor {
   font-family: inherit;
 }
+
 .gjs-pn-panel {
   border: none;
+}
+
+/* Blocks panel – match Fluent webDarkTheme surface colours */
+.gjs-block-categories {
+  background: transparent;
+}
+
+.gjs-block-category .gjs-title {
+  background: var(--colorNeutralBackground3, #292929);
+  color: var(--colorNeutralForeground2, #d6d6d6);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--colorNeutralStroke1, #575757);
+}
+
+.gjs-block {
+  background: var(--colorNeutralBackground3, #292929);
+  border: 1px solid var(--colorNeutralStroke1, #575757);
+  border-radius: 6px;
+  color: var(--colorNeutralForeground1, #ffffff);
+  font-size: 0.75rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.gjs-block:hover {
+  background: var(--colorNeutralBackground4, #3d3d3d);
+  border-color: var(--colorBrandStroke1, #479ef5);
+}
+
+/* Layers panel */
+.gjs-layer {
+  background: transparent;
+  color: var(--colorNeutralForeground2, #d6d6d6);
+  border-bottom: 1px solid var(--colorNeutralStroke2, #414141);
+  font-size: 0.8rem;
+}
+
+.gjs-layer.gjs-selected {
+  background: var(--colorSubtleBackgroundSelected, #2a3a4a);
+}
+
+/* Style / trait manager inputs */
+.gjs-sm-sector .gjs-sm-title,
+.gjs-trt-traits .gjs-label {
+  background: var(--colorNeutralBackground3, #292929);
+  color: var(--colorNeutralForeground2, #d6d6d6);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--colorNeutralStroke1, #575757);
+}
+
+.gjs-sm-field input,
+.gjs-sm-field select,
+.gjs-trt-trait input,
+.gjs-trt-trait select {
+  background: var(--colorNeutralBackground4, #3d3d3d);
+  color: var(--colorNeutralForeground1, #ffffff);
+  border: 1px solid var(--colorNeutralStroke1, #575757);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.gjs-sm-field input:focus,
+.gjs-sm-field select:focus,
+.gjs-trt-trait input:focus,
+.gjs-trt-trait select:focus {
+  outline: none;
+  border-color: var(--colorBrandStroke1, #479ef5);
+}
+
+/* Toolbar / selected-component highlight */
+.gjs-toolbar {
+  background: var(--colorBrandBackground, #0f6cbd);
+  border-radius: 4px;
+}
+
+.gjs-resizer-h {
+  border-color: var(--colorBrandBackground, #0f6cbd);
 }

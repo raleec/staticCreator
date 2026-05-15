@@ -3,6 +3,14 @@ import type { Editor } from 'grapesjs';
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import { ArrowLeft, Save, Eye, EyeOff, Settings } from 'lucide-react';
+import {
+  FluentProvider,
+  webDarkTheme,
+  Button,
+  TabList,
+  Tab,
+  tokens,
+} from '@fluentui/react-components';
 import { useSites } from '../../contexts/SiteContext';
 import ConfigModal from '../Configuration/ConfigModal';
 import { registerFormBlocks } from '../../utils/formBlocks';
@@ -21,6 +29,7 @@ export default function PageBuilder({ siteId, pageId, onBack }: PageBuilderProps
   const [saved, setSaved] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [activeTab, setActiveTab] = useState<'blocks' | 'layers' | 'styles'>('blocks');
 
   const site = sites.find((s) => s.id === siteId);
   const page = site?.pages.find((p) => p.id === pageId);
@@ -244,114 +253,163 @@ export default function PageBuilder({ siteId, pageId, onBack }: PageBuilderProps
     setPreviewMode((prev) => !prev);
   }
 
+  function switchTab(tab: 'blocks' | 'layers' | 'styles') {
+    const editor = editorRef.current;
+    if (!editor) return;
+    setActiveTab(tab);
+    if (tab === 'blocks') editor.runCommand('show-blocks');
+    if (tab === 'layers') editor.runCommand('show-layers');
+    if (tab === 'styles') editor.runCommand('show-styles');
+  }
+
   function handleConfigSave(name: string, description: string, azureConfig: AzureConfig) {
     updateSite(siteId, { name, description, azureConfig });
   }
 
   if (!site || !page) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-100">
-        <div className="text-center">
-          <p className="text-gray-500 mb-4">Page not found.</p>
-          <button onClick={onBack} className="text-blue-600 hover:underline">
-            ← Back to Management
-          </button>
+      <FluentProvider theme={webDarkTheme}>
+        <div
+          className="flex items-center justify-center h-screen"
+          style={{ background: tokens.colorNeutralBackground1 }}
+        >
+          <div className="text-center">
+            <p className="mb-4" style={{ color: tokens.colorNeutralForeground3 }}>
+              Page not found.
+            </p>
+            <Button appearance="transparent" onClick={onBack}>
+              ← Back to Management
+            </Button>
+          </div>
         </div>
-      </div>
+      </FluentProvider>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 overflow-hidden">
-      {/* Builder Toolbar */}
-      <div className="flex items-center justify-between bg-gray-800 text-white px-4 py-2 shrink-0 border-b border-gray-700">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-          <div className="h-5 w-px bg-gray-600" />
-          <div>
-            <span className="font-semibold text-sm">{site.name}</span>
-            <span className="text-gray-400 text-sm"> / {page.name}</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={togglePreview}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
-              previewMode ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-gray-700'
-            }`}
-          >
-            {previewMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            {previewMode ? 'Edit' : 'Preview'}
-          </button>
-          <button
-            onClick={() => setConfigOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            Config
-          </button>
-          <button
-            onClick={handleSave}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
-              saved ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            <Save className="w-4 h-4" />
-            {saved ? 'Saved!' : 'Save'}
-          </button>
-        </div>
-      </div>
-
-      {/* GrapesJS Editor Container */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar: Blocks / Layers / Styles panel */}
-        <div className="w-56 bg-gray-800 border-r border-gray-700 flex flex-col overflow-hidden shrink-0">
-          <div className="flex border-b border-gray-700">
-            {['Blocks', 'Layers', 'Styles'].map((tab) => (
-              <button
-                key={tab}
-                className="flex-1 py-2 text-xs text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-                onClick={() => {
-                  const editor = editorRef.current;
-                  if (!editor) return;
-                  if (tab === 'Blocks') editor.runCommand('show-blocks');
-                  if (tab === 'Layers') editor.runCommand('show-layers');
-                  if (tab === 'Styles') editor.runCommand('show-styles');
-                }}
+    <FluentProvider theme={webDarkTheme}>
+      <div
+        className="flex flex-col h-screen overflow-hidden"
+        style={{ background: tokens.colorNeutralBackground1 }}
+      >
+        {/* Builder Toolbar */}
+        <div
+          className="flex items-center justify-between px-4 py-2 shrink-0 border-b"
+          style={{
+            background: tokens.colorNeutralBackground2,
+            borderColor: tokens.colorNeutralStroke1,
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <Button
+              appearance="subtle"
+              icon={<ArrowLeft className="w-4 h-4" />}
+              onClick={onBack}
+            >
+              Back
+            </Button>
+            <div
+              className="h-5 w-px"
+              style={{ background: tokens.colorNeutralStroke1 }}
+            />
+            <div>
+              <span
+                className="font-semibold text-sm"
+                style={{ color: tokens.colorNeutralForeground1 }}
               >
-                {tab}
-              </button>
-            ))}
+                {site.name}
+              </span>
+              <span
+                className="text-sm"
+                style={{ color: tokens.colorNeutralForeground3 }}
+              >
+                {' '}/ {page.name}
+              </span>
+            </div>
           </div>
-          <div className="flex-1 overflow-y-auto">
-            <div className="blocks-container" />
-            <div className="layers-container" />
-            <div className="styles-container" />
-            <div className="traits-container" />
+          <div className="flex items-center gap-2">
+            <Button
+              appearance={previewMode ? 'primary' : 'subtle'}
+              icon={previewMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              onClick={togglePreview}
+            >
+              {previewMode ? 'Edit' : 'Preview'}
+            </Button>
+            <Button
+              appearance="subtle"
+              icon={<Settings className="w-4 h-4" />}
+              onClick={() => setConfigOpen(true)}
+            >
+              Config
+            </Button>
+            <Button
+              appearance="primary"
+              icon={<Save className="w-4 h-4" />}
+              onClick={handleSave}
+              style={
+                saved
+                  ? {
+                      backgroundColor: tokens.colorPaletteGreenBackground3,
+                      borderColor: tokens.colorPaletteGreenBackground3,
+                    }
+                  : undefined
+              }
+            >
+              {saved ? 'Saved!' : 'Save'}
+            </Button>
           </div>
         </div>
 
-        {/* Canvas */}
-        <div ref={containerRef} className="flex-1 h-full" />
-      </div>
+        {/* GrapesJS Editor Container */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left sidebar: Blocks / Layers / Styles panel */}
+          <div
+            className="w-56 flex flex-col overflow-hidden shrink-0 border-r"
+            style={{
+              background: tokens.colorNeutralBackground2,
+              borderColor: tokens.colorNeutralStroke1,
+            }}
+          >
+            <div
+              className="px-2 pt-2 border-b"
+              style={{ borderColor: tokens.colorNeutralStroke1 }}
+            >
+              <TabList
+                selectedValue={activeTab}
+                onTabSelect={(_, d) =>
+                  switchTab(d.value as 'blocks' | 'layers' | 'styles')
+                }
+                size="small"
+              >
+                <Tab value="blocks">Blocks</Tab>
+                <Tab value="layers">Layers</Tab>
+                <Tab value="styles">Styles</Tab>
+              </TabList>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <div className="blocks-container" />
+              <div className="layers-container" />
+              <div className="styles-container" />
+              <div className="traits-container" />
+            </div>
+          </div>
 
-      {/* Config Modal – only mounted when open */}
-      {configOpen && (
-        <ConfigModal
-          onClose={() => setConfigOpen(false)}
-          initialConfig={site.azureConfig}
-          siteName={site.name}
-          siteDescription={site.description}
-          onSave={handleConfigSave}
-          mode="edit"
-        />
-      )}
-    </div>
+          {/* Canvas */}
+          <div ref={containerRef} className="flex-1 h-full" />
+        </div>
+
+        {/* Config Modal – only mounted when open */}
+        {configOpen && (
+          <ConfigModal
+            onClose={() => setConfigOpen(false)}
+            initialConfig={site.azureConfig}
+            siteName={site.name}
+            siteDescription={site.description}
+            onSave={handleConfigSave}
+            mode="edit"
+          />
+        )}
+      </div>
+    </FluentProvider>
   );
 }
