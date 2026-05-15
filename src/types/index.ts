@@ -95,7 +95,7 @@ export interface AzureConfig {
 export interface Page {
   id: string;
   name: string;
-  /** GrapesJS serialised project data (JSON) */
+  /** Serialised page content – JSON object with `html` and `css` string fields */
   gjsData: string;
   createdAt: string;
   updatedAt: string;

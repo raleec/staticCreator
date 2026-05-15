@@ -28,7 +28,7 @@ Build pages visually, configure API integrations, and export a ready-to-deploy Z
 
 ## Features
 
-- **Visual page builder** powered by [GrapesJS](https://grapesjs.com/)
+- **Visual page builder** powered by [Webstudio](https://webstudio.is/) workflow — write HTML & CSS in a split-pane code editor with a live preview, and use pre-built snippets to jumpstart your layouts
 - **Two deployment modes** — **Azure** (Azure Static Web Apps + MSAL authentication) or **Generic** (any static host, no Azure account needed)
 - **Azure AD / MSAL authentication** baked into every exported Azure-mode page
 - Support for **Azure Commercial, Government (MAG), and DoD** clouds
@@ -95,13 +95,15 @@ The landing screen where you manage sites and pages.
 
 ### Page Builder
 
-A full-screen GrapesJS editor for visually designing a page.
+A full-screen HTML/CSS code editor for designing a page, with a live preview pane.
 
-- Drag-and-drop blocks from the **Blocks** panel on the right
-- Edit styles, traits, and layers with the side panels
+- **HTML tab** — write or paste your page HTML; syntax is highlighted in green
+- **CSS tab** — add custom styles; highlighted in blue
+- **Snippets tab** — click any pre-built block (Hero, Navbar, Card, API Form, etc.) to insert it at the cursor in the HTML editor
+- **Open in Webstudio** (top-right) — opens [Webstudio](https://webstudio.is/) in a new tab for visual drag-and-drop editing; copy the resulting HTML/CSS back into the code editor
 - **Save** — persists the current page content to `localStorage`
-- **Preview** — toggle device-preview mode
-- **Settings** (gear icon) — edit the site's Azure configuration without leaving the builder
+- **Preview** — toggles full-screen live preview mode
+- **Settings** (gear icon) — edit the site's configuration without leaving the builder
 - **Back** — return to the Management Portal
 
 ---
@@ -205,31 +207,34 @@ For Government or DoD clouds, register the app in the corresponding sovereign Az
 ## Building Pages
 
 1. Create a site, then click **Add Page** and give the page a name
-2. The page opens in the GrapesJS editor
-3. Use the **Blocks** panel (right side) to drag components onto the canvas:
-   - **Basic** blocks — headings, paragraphs, images, links, etc.
-   - **Forms** blocks — API Form, Text Input, Email Input, Dropdown, Textarea, Hidden Input
-4. Select a component on the canvas to edit its **Traits** (properties), **Styles**, and **Settings**
-5. Click **Save** to persist your work
+2. The page opens in the code editor with a live preview pane
+3. Use the **HTML** tab to write your page markup
+4. Use the **CSS** tab to add custom styles
+5. Use the **Snippets** tab to insert pre-built blocks:
+   - **Layout** — Section, 2/3 Columns, Divider
+   - **Components** — Hero, Navbar, Footer, Card, Button, Login Form
+   - **Forms** — API Form, Text Input, Email Input, Dropdown, Text Area, Hidden Field
+6. Click **Open in Webstudio** to design visually in [Webstudio](https://webstudio.is/), then copy the exported HTML/CSS back into the editor
+7. Click **Save** (or press **Ctrl+S** / **Cmd+S**) to persist your work
 
-### Form-specific traits
+### Form data attributes
 
-When an **API Form** block is selected, the Traits panel exposes:
+When using an **API Form** snippet, configure the following HTML attributes directly in the editor:
 
-| Trait | Description |
+| Attribute | Description |
 |---|---|
-| `API Endpoint URL` | The URL to `POST`/`PUT`/`PATCH` the form data to |
-| `HTTP Method` | `POST`, `PUT`, or `PATCH` |
-| `Include Bearer Token` | Whether to attach an MSAL access token |
-| `Inject Metadata Keys` | Comma-separated keys from `__pageMetadata` to add to the request body |
-| `Success Message` | Alert shown on a successful submission |
-| `Redirect URL on Success` | Optional URL to navigate to instead of showing an alert |
+| `data-api-url` | The URL to `POST`/`PUT`/`PATCH` the form data to |
+| `data-api-method` | `POST`, `PUT`, or `PATCH` |
+| `data-auth-header` | `true` to attach an MSAL access token; `false` to skip |
+| `data-metadata-inject` | Comma-separated keys from `__pageMetadata` to add to the request body |
+| `data-success-message` | Alert shown on a successful submission |
+| `data-success-redirect` | Optional URL to navigate to instead of showing an alert |
 
-When an **input**, **select**, or **textarea** is selected, an extra trait appears:
+To pre-fill a form field from page metadata, set:
 
-| Trait | Description |
+| Attribute | Description |
 |---|---|
-| `Prefill from Metadata Key` | Dot-notation path into `__pageMetadata` (e.g. `currentUser.mail`) |
+| `data-metadata-prefill` | Dot-notation path into `__pageMetadata` (e.g. `currentUser.mail`) |
 
 ---
 
