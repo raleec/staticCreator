@@ -12,6 +12,7 @@
   "dependencies": {
     "@azure/msal-browser": "^5.10.1",
     "@azure/msal-react": "^5.4.1",
+    "@fluentui/react-components": "^9.73.8",
     "grapesjs": "^0.22.16",
     "grapesjs-blocks-basic": "^1.0.2",
     "grapesjs-preset-webpage": "^1.0.3",

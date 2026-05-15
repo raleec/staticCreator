@@ -154,6 +154,8 @@ Clicking **Generate & Download** produces a ZIP archive named `{ServiceName}-api
 ├── Program.cs
 ├── host.json
 ├── local.settings.json
+├── Data/
+│   └── AppDbContext.cs
 ├── Models/
 │   ├── {Table1}.cs
 │   └── {Table2}.cs
@@ -184,26 +186,23 @@ A complete OpenAPI 3.0.3 spec including:
 
 Each file contains a class with five HTTP trigger methods corresponding to the five operations above. Routes use the plural, camelCase form of the table name (e.g. `Product` → `products`).
 
-The generated functions are **scaffolded stubs**. The HTTP routing, request deserialisation, response shaping, error envelopes, and OpenAPI decorators are all in place and fully functional. Each data operation contains a `// TODO` comment marking where you must add data access logic:
+The generated functions use **Entity Framework Core** via the injected `AppDbContext` for all data operations. Full CRUD is implemented out of the box:
 
-```csharp
-// TODO: replace with real data-access logic
-var items = Array.Empty<Product>();
-
-// TODO: persist item and assign generated primary key
-
-// TODO: fetch by primary key
-
-// TODO: update record
-
-// TODO: delete record
-```
-
-Until those stubs are filled in, the API compiles and runs — list endpoints return empty arrays and get/update/delete return `404 Not Found`. See [Connecting to SQL Server](#connecting-to-sql-server) for how to wire a data layer.
+- **List** — queries the DbSet with `$top`/`$skip` pagination and returns a `PagedResult<T>` with `TotalCount` and `NextLink`.
+- **Create** — adds the entity to the DbSet and calls `SaveChangesAsync`.
+- **Get by ID** — uses `FindAsync` and returns `404 Not Found` if not found.
+- **Replace** — uses `FindAsync` + `SetValues` to update the tracked entity and calls `SaveChangesAsync`.
+- **Delete** — uses `FindAsync` + `Remove` and calls `SaveChangesAsync`.
 
 ### `Models/{Table}.cs`
 
 A simple C# POCO with public properties matching the column definitions. Nullable columns use nullable reference types (`string?`, `int?`, etc.).
+
+### `Data/AppDbContext.cs`
+
+An Entity Framework Core `DbContext` subclass with:
+- One `DbSet<T>` per table.
+- `OnModelCreating` configuration that maps each entity to its table by name and sets the primary key.
 
 ### `Program.cs`
 
@@ -211,6 +210,7 @@ Configures the .NET 8 isolated Functions host with:
 - `AddApplicationInsightsTelemetryWorkerService`
 - `ConfigureFunctionsWebApplication`
 - OpenAPI document generation via `Microsoft.Azure.Functions.Worker.Extensions.OpenApi`
+- `AddDbContext<AppDbContext>` wired to `UseSqlServer` with the `SqlConnectionString` app setting and retry-on-failure enabled.
 
 ### `{ServiceName}.csproj`
 
@@ -222,40 +222,20 @@ Targets `net8.0` with the following key package references:
 | `Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore` | ASP.NET Core HTTP binding |
 | `Microsoft.Azure.Functions.Worker.Extensions.OpenApi` | OpenAPI middleware |
 | `Microsoft.ApplicationInsights.WorkerService` | Telemetry |
+| `Microsoft.EntityFrameworkCore.SqlServer` | EF Core SQL Server provider |
+| `Microsoft.EntityFrameworkCore.Design` | EF Core tooling (migrations, scaffolding) |
 
 ---
 
 ## Connecting to SQL Server
 
-The API Builder generates the full HTTP surface and leaves data access as `// TODO` stubs. This is intentional — SQL schema names, connection patterns, authentication method, and pagination strategy vary too much to generate safely without additional input.
-
-The generated `Program.cs` uses standard .NET 8 dependency injection, so any data access library drops in the same way.
+The generated project includes a complete Entity Framework Core setup out of the box. `AppDbContext` is pre-configured with a `DbSet<T>` for every table and wired into `Program.cs` via `AddDbContext<AppDbContext>`. All you need to do is supply a connection string and run migrations.
 
 ---
 
-### Step 1 — Add a data access package
+### Step 1 — Configure the connection string
 
-Add one of the following to `{ServiceName}.csproj`:
-
-**Entity Framework Core** (recommended for most projects):
-```xml
-<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.*" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.*" PrivateAssets="all" />
-```
-
-**Dapper** (lightweight, raw SQL):
-```xml
-<PackageReference Include="Dapper" Version="2.*" />
-<PackageReference Include="Microsoft.Data.SqlClient" Version="5.*" />
-```
-
-**Raw ADO.NET** (no extra packages — `Microsoft.Data.SqlClient` is already available in the Azure Functions runtime).
-
----
-
-### Step 2 — Store the connection string
-
-Add the connection string to `local.settings.json` (already templated in the generated output):
+Update `SqlConnectionString` in `local.settings.json` for local development:
 
 ```json
 {
@@ -274,111 +254,40 @@ For local development, use SQL auth or Azure CLI credentials (`Authentication=Ac
 
 ---
 
-### Step 3 — Register the data context in `Program.cs`
+### Step 2 — Create and apply migrations
 
-**EF Core:**
-```csharp
-builder.Services.AddDbContext<AppDbContext>(opts =>
-    opts.UseSqlServer(Environment.GetEnvironmentVariable("SqlConnectionString")));
+```bash
+cd {ServiceName}
+dotnet tool install --global dotnet-ef   # if not already installed
+dotnet ef migrations add InitialCreate
+dotnet ef database update
 ```
 
-**Dapper / ADO.NET:**
-```csharp
-builder.Services.AddScoped<IDbConnection>(_ =>
-    new Microsoft.Data.SqlClient.SqlConnection(
-        Environment.GetEnvironmentVariable("SqlConnectionString")));
-```
+This generates migration files from the `AppDbContext` model and applies them to the database configured in `local.settings.json`.
 
 ---
 
-### Step 4 — Replace the `// TODO` stubs
+### Step 3 — Run and test
 
-Update the generated primary constructor in each `{Table}Functions.cs` to accept the injected context, then fill in the stubs.
-
-**EF Core example (`Product` table):**
-
-```csharp
-public class ProductFunctions(ILogger<ProductFunctions> logger, AppDbContext db)
-{
-    // GET /v1/myService/products
-    public IActionResult ListProducts(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "...")] HttpRequest req)
-    {
-        var top  = int.TryParse(req.Query["$top"],  out var t) ? Math.Clamp(t, 1, 200) : 50;
-        var skip = int.TryParse(req.Query["$skip"], out var s) ? Math.Max(s, 0) : 0;
-
-        var items = db.Products.Skip(skip).Take(top).ToList();
-        var total = db.Products.Count();
-        var result = new PagedResult<Product>
-        {
-            Value    = items,
-            NextLink = (skip + top < total)
-                ? $"{req.Scheme}://{req.Host}{req.Path}?$skip={skip + top}&$top={top}"
-                : null,
-        };
-        return new OkObjectResult(result);
-    }
-
-    // POST /v1/myService/products
-    public async Task<IActionResult> CreateProduct(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "...")] HttpRequest req)
-    {
-        // ... deserialise item (already scaffolded) ...
-        item.Id = Guid.NewGuid();
-        db.Products.Add(item);
-        await db.SaveChangesAsync();
-        return new CreatedAtRouteResult(null, item);
-    }
-
-    // GET /v1/myService/products/{id}
-    public IActionResult GetProductById(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "...")] HttpRequest req,
-        Guid id)
-    {
-        var item = db.Products.Find(id);
-        return item is null ? new NotFoundResult() : new OkObjectResult(item);
-    }
-
-    // PUT /v1/myService/products/{id}
-    public async Task<IActionResult> ReplaceProduct(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "...")] HttpRequest req,
-        Guid id)
-    {
-        // ... deserialise item (already scaffolded) ...
-        var existing = db.Products.Find(id);
-        if (existing is null) return new NotFoundResult();
-        db.Entry(existing).CurrentValues.SetValues(item!);
-        await db.SaveChangesAsync();
-        return new OkObjectResult(existing);
-    }
-
-    // DELETE /v1/myService/products/{id}
-    public async Task<IActionResult> DeleteProduct(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "...")] HttpRequest req,
-        Guid id)
-    {
-        var existing = db.Products.Find(id);
-        if (existing is null) return new NotFoundResult();
-        db.Products.Remove(existing);
-        await db.SaveChangesAsync();
-        return new NoContentResult();
-    }
-}
+```bash
+dotnet restore
+dotnet build
+func start          # requires Azure Functions Core Tools
 ```
+
+All five CRUD operations per table are immediately functional once the database is reachable.
 
 ---
 
 ### Data access library comparison
 
-| | EF Core | Dapper | Raw ADO.NET |
+| Feature | EF Core (generated) | Dapper | Raw ADO.NET |
 |---|---|---|---|
-| **Setup effort** | Medium (DbContext + migrations) | Low | Low |
+| **Setup effort** | None — already generated | Low | Low |
 | **Query style** | LINQ | Raw SQL with mapping | Raw SQL + manual mapping |
 | **Schema migrations** | Built-in (`dotnet ef migrations`) | Manual | Manual |
 | **Performance** | Good (with `.AsNoTracking()`) | Excellent | Excellent |
 | **Best for** | New projects, code-first schema | Existing DB, stored procs | Maximum control |
-
-**Recommendation:** Use **EF Core** when you own the schema and want migrations managed in code. Use **Dapper** when connecting to an existing database or when stored procedures are the primary access pattern.
 
 ---
 
@@ -410,7 +319,9 @@ The generated project is a standalone Azure Functions app and is **not** tied to
 cd {ServiceName}
 dotnet restore
 dotnet build
-func start          # requires Azure Functions Core Tools
+dotnet ef migrations add InitialCreate   # generate initial EF migration
+dotnet ef database update                # apply migration to local database
+func start                               # requires Azure Functions Core Tools
 ```
 
 ### Deploy to Azure
