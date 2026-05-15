@@ -10,8 +10,8 @@ This document describes every field in the StaticCreator site configuration (the
 - [General Tab](#general-tab)
 - [Auth Tab](#auth-tab)
 - [Region Tab](#region-tab)
-- [Forms Tab — Metadata Fields](#forms-tab--metadata-fields)
 - [Data Tab — API Preload Queries](#data-tab--api-preload-queries)
+- [Forms Tab — Metadata Fields and Graph API Queries](#forms-tab--metadata-fields-and-graph-api-queries)
 - [Graph API Queries](#graph-api-queries)
 - [Default Values](#default-values)
 - [Configuration Validation Rules](#configuration-validation-rules)
@@ -49,6 +49,24 @@ interface AzureConfig {
 
 ## General Tab
 
+The configuration modal shows **up to five tabs** depending on the selected **Deployment Environment**:
+
+- **Azure** mode: General, Auth, Region, Data, Forms
+- **Generic** mode: General, Data, Forms (Auth and Region are not shown)
+
+### Deployment Environment *(required)*
+
+Selects the deployment target for the generated site:
+
+| Value | Label | Description |
+|---|---|---|
+| `azure` | Azure | Deploy to Azure Static Web Apps with Azure AD / MSAL authentication. Auth and Region tabs are shown. |
+| `generic` | Generic | Deploy to any static hosting provider. No Azure account or Azure AD registration required. Auth and Region tabs are hidden. |
+
+When set to **Generic**, the exported ZIP does not include a `staticwebapp.config.json` file and the generated pages do not embed the MSAL bootstrap script.
+
+---
+
 ### Site Name *(required)*
 
 The display name for the site inside StaticCreator. Used to derive the filename when exporting:
@@ -62,7 +80,7 @@ Non-alphanumeric characters are replaced with `-` or `_` in file names.
 
 ---
 
-### Azure Subscription ID *(required)*
+### Azure Subscription ID *(required for Azure mode)*
 
 The GUID of the Azure subscription where the Static Web App will reside.
 
@@ -76,7 +94,7 @@ Used:
 
 ---
 
-### Resource Group
+### Resource Group *(Azure mode only)*
 
 The Azure resource group that contains (or will contain) the Static Web App.
 
@@ -88,7 +106,7 @@ Stored for reference only; StaticCreator does not create or manage Azure resourc
 
 ---
 
-### Deployment Token *(optional)*
+### Deployment Token *(optional, Azure mode only)*
 
 The deployment token for the Azure Static Web App, obtained from:
 
@@ -109,7 +127,9 @@ It is included in the exported `site.json` bundle — consider removing it from 
 
 ---
 
-## Auth Tab
+## Auth Tab *(Azure mode only)*
+
+> This tab is only shown when **Deployment Environment** is set to **Azure**.
 
 ### Tenant (Directory) ID *(required)*
 
@@ -202,7 +222,9 @@ Use the custom field for non-standard authority URLs such as B2C tenants or cust
 
 ---
 
-## Region Tab
+## Region Tab *(Azure mode only)*
+
+> This tab is only shown when **Deployment Environment** is set to **Azure**.
 
 ### Cloud Environment
 
@@ -229,42 +251,6 @@ Supported regions by cloud (as of the time of writing):
 **Government**: US Gov Arizona, US Gov Texas, US Gov Virginia
 
 **DoD**: US DoD Central, US DoD East
-
----
-
-## Forms Tab — Metadata Fields
-
-Static key/value pairs that are injected into the `__pageMetadata` object on every page load, before any network requests are made.
-
-### MetadataField
-
-```ts
-interface MetadataField {
-  key:   string;   // Reference key used in data attributes and metadata-inject lists
-  value: string;   // Static string value
-}
-```
-
-**Example configuration:**
-
-| Key | Value |
-|---|---|
-| `appVersion` | `2.1.0` |
-| `environment` | `production` |
-| `supportEmail` | `help@example.com` |
-
-**Runtime effect on generated pages:**
-
-```js
-var __pageMetadata = {};
-__pageMetadata["appVersion"]    = "2.1.0";
-__pageMetadata["environment"]   = "production";
-__pageMetadata["supportEmail"]  = "help@example.com";
-```
-
-These values can then be:
-- Injected into form submissions with `data-metadata-inject="appVersion,environment"`
-- Used to pre-fill form fields with `data-metadata-prefill="supportEmail"`
 
 ---
 
@@ -309,9 +295,49 @@ Accessing nested values in pre-fill attributes:
 
 ---
 
-## Graph API Queries
+## Forms Tab — Metadata Fields and Graph API Queries
 
-Microsoft Graph API queries run after MSAL token acquisition. Results are stored in `__pageMetadata`.
+The Forms tab contains two sections: **Static Metadata Fields** (available in all deployment modes) and **Graph API Queries** (Azure mode only).
+
+### Static Metadata Fields
+
+Static key/value pairs that are injected into the `__pageMetadata` object on every page load, before any network requests are made.
+
+### MetadataField
+
+```ts
+interface MetadataField {
+  key:   string;   // Reference key used in data attributes and metadata-inject lists
+  value: string;   // Static string value
+}
+```
+
+**Example configuration:**
+
+| Key | Value |
+|---|---|
+| `appVersion` | `2.1.0` |
+| `environment` | `production` |
+| `supportEmail` | `help@example.com` |
+
+**Runtime effect on generated pages:**
+
+```js
+var __pageMetadata = {};
+__pageMetadata["appVersion"]    = "2.1.0";
+__pageMetadata["environment"]   = "production";
+__pageMetadata["supportEmail"]  = "help@example.com";
+```
+
+These values can then be:
+- Injected into form submissions with `data-metadata-inject="appVersion,environment"`
+- Used to pre-fill form fields with `data-metadata-prefill="supportEmail"`
+
+---
+
+## Graph API Queries *(Azure mode only)*
+
+Microsoft Graph API queries are configured in the **Forms** tab and run after MSAL token acquisition. Results are stored in `__pageMetadata`.
 
 ### GraphApiQuery
 
@@ -323,8 +349,6 @@ interface GraphApiQuery {
   filter?:  string;   // OData $filter clause
 }
 ```
-
-> Graph API queries are configured via the **Data tab** in the site configuration.
 
 **Example:**
 
@@ -358,6 +382,7 @@ When creating a new site, the following defaults are applied:
 
 ```ts
 {
+  deploymentEnvironment:  'azure',
   tenantId:               '',
   clientId:               '',
   subscriptionId:         '',
@@ -380,7 +405,7 @@ The following fields are validated when saving a site configuration. Attempting 
 | Field | Rule |
 |---|---|
 | Site Name | Required, non-empty |
-| Tenant ID | Required, non-empty |
-| Client ID | Required, non-empty |
-| Subscription ID | Required, non-empty |
-| Redirect URI | Required, non-empty |
+| Tenant ID | Required, non-empty *(Azure mode only)* |
+| Client ID | Required, non-empty *(Azure mode only)* |
+| Subscription ID | Required, non-empty *(Azure mode only)* |
+| Redirect URI | Required, non-empty *(Azure mode only)* |
