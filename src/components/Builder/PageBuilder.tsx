@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { ArrowLeft, Save, Eye, EyeOff, Settings, ExternalLink, Code2 } from 'lucide-react';
+import { ArrowLeft, Save, Check, Eye, EyeOff, Settings, ExternalLink, Code2 } from 'lucide-react';
+import {
+  FluentProvider,
+  webDarkTheme,
+  Button,
+  TabList,
+  Tab,
+  tokens,
+} from '@fluentui/react-components';
 import { useSites } from '../../contexts/SiteContext';
 import ConfigModal from '../Configuration/ConfigModal';
 import { getHtmlSnippets, type HtmlSnippet } from '../../utils/htmlSnippets';
@@ -113,176 +121,239 @@ export default function PageBuilder({ siteId, pageId, onBack }: PageBuilderProps
 
   if (!site || !page) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-100">
-        <div className="text-center">
-          <p className="text-gray-500 mb-4">Page not found.</p>
-          <button onClick={onBack} className="text-blue-600 hover:underline">
-            ← Back to Management
-          </button>
+      <FluentProvider theme={webDarkTheme}>
+        <div
+          className="flex items-center justify-center h-screen"
+          style={{ background: tokens.colorNeutralBackground1 }}
+        >
+          <div className="text-center">
+            <p className="mb-4" style={{ color: tokens.colorNeutralForeground3 }}>
+              Page not found.
+            </p>
+            <Button appearance="transparent" onClick={onBack}>
+              ← Back to Management
+            </Button>
+          </div>
         </div>
-      </div>
+      </FluentProvider>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900 overflow-hidden">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between bg-gray-800 text-white px-4 py-2 shrink-0 border-b border-gray-700">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </button>
-          <div className="h-5 w-px bg-gray-600" />
-          <div>
-            <span className="font-semibold text-sm">{site.name}</span>
-            <span className="text-gray-400 text-sm"> / {page.name}</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <a
-            href="https://webstudio.is"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-violet-700 hover:bg-violet-600 transition-colors font-medium"
-            title="Open Webstudio for visual drag-and-drop editing"
-          >
-            <ExternalLink className="w-4 h-4" />
-            Open in Webstudio
-          </a>
-          <button
-            onClick={() => setPreviewMode((prev) => !prev)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${
-              previewMode ? 'bg-blue-600 hover:bg-blue-700' : 'hover:bg-gray-700'
-            }`}
-          >
-            {previewMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            {previewMode ? 'Edit' : 'Preview'}
-          </button>
-          <button
-            onClick={() => setConfigOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            <Settings className="w-4 h-4" />
-            Config
-          </button>
-          <button
-            onClick={handleSave}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
-              saved ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            <Save className="w-4 h-4" />
-            {saved ? 'Saved!' : 'Save'}
-          </button>
-        </div>
-      </div>
-
-      {/* Editor + Preview */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left pane: code editor (hidden when preview mode is active) */}
-        {!previewMode && (
-          <div className="w-2/5 flex flex-col border-r border-gray-700 shrink-0">
-            {/* Tabs */}
-            <div className="flex border-b border-gray-700 bg-gray-800 shrink-0">
-              {(['html', 'css', 'snippets'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex items-center gap-1.5 px-4 py-2 text-xs font-medium uppercase tracking-wide transition-colors ${
-                    activeTab === tab
-                      ? 'text-white border-b-2 border-blue-500 bg-gray-900'
-                      : 'text-gray-400 hover:text-white hover:bg-gray-700'
-                  }`}
-                >
-                  {tab !== 'snippets' && <Code2 className="w-3 h-3" />}
-                  {tab}
-                </button>
-              ))}
+    <FluentProvider theme={webDarkTheme}>
+      <div
+        className="flex flex-col h-screen overflow-hidden"
+        style={{ background: tokens.colorNeutralBackground1 }}
+      >
+        {/* Toolbar */}
+        <div
+          className="flex items-center justify-between px-4 py-2 shrink-0 border-b"
+          style={{
+            background: tokens.colorNeutralBackground2,
+            borderColor: tokens.colorNeutralStroke1,
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <Button
+              appearance="subtle"
+              icon={<ArrowLeft className="w-4 h-4" />}
+              onClick={onBack}
+            >
+              Back
+            </Button>
+            <div
+              className="h-5 w-px"
+              style={{ background: tokens.colorNeutralStroke1 }}
+            />
+            <div>
+              <span
+                className="font-semibold text-sm"
+                style={{ color: tokens.colorNeutralForeground1 }}
+              >
+                {site.name}
+              </span>
+              <span
+                className="text-sm"
+                style={{ color: tokens.colorNeutralForeground3 }}
+              >
+                {' '}/ {page.name}
+              </span>
             </div>
-
-            {/* HTML editor */}
-            {activeTab === 'html' && (
-              <textarea
-                ref={htmlTextareaRef}
-                value={html}
-                onChange={(e) => setHtml(e.target.value)}
-                className="flex-1 bg-gray-900 text-green-300 font-mono text-sm p-4 resize-none focus:outline-none"
-                placeholder="<!-- Enter your HTML here -->"
-                spellCheck={false}
-                autoCorrect="off"
-                autoCapitalize="off"
-              />
-            )}
-
-            {/* CSS editor */}
-            {activeTab === 'css' && (
-              <textarea
-                value={css}
-                onChange={(e) => setCss(e.target.value)}
-                className="flex-1 bg-gray-900 text-blue-300 font-mono text-sm p-4 resize-none focus:outline-none"
-                placeholder="/* Enter your CSS here */"
-                spellCheck={false}
-                autoCorrect="off"
-                autoCapitalize="off"
-              />
-            )}
-
-            {/* Snippets panel */}
-            {activeTab === 'snippets' && (
-              <div className="flex-1 overflow-y-auto p-3">
-                <p className="text-xs text-gray-500 mb-3">
-                  Click a snippet to insert it at the cursor in the HTML editor.
-                </p>
-                {Object.entries(snippetsByCategory).map(([category, items]) => (
-                  <div key={category} className="mb-4">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
-                      {category}
-                    </h3>
-                    <div className="space-y-1">
-                      {items.map((snippet) => (
-                        <button
-                          key={snippet.id}
-                          onClick={() => insertSnippet(snippet)}
-                          className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white rounded transition-colors"
-                        >
-                          {snippet.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
-        )}
 
-        {/* Right pane: live preview */}
-        <div className="flex-1 flex flex-col bg-white overflow-hidden">
-          <iframe
-            srcDoc={previewDoc}
-            className="w-full h-full border-none"
-            title={`Preview – ${page.name}`}
-            sandbox="allow-scripts"
-          />
+          <div className="flex items-center gap-2">
+            <Button
+              as="a"
+              href="https://webstudio.is"
+              target="_blank"
+              rel="noopener noreferrer"
+              appearance="subtle"
+              icon={<ExternalLink className="w-4 h-4" />}
+              title="Open Webstudio for visual drag-and-drop editing"
+              style={{
+                backgroundColor: tokens.colorPaletteLavenderBackground2,
+                color: tokens.colorNeutralForeground1,
+              }}
+            >
+              Open in Webstudio
+            </Button>
+            <Button
+              appearance={previewMode ? 'primary' : 'subtle'}
+              icon={previewMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              onClick={() => setPreviewMode((prev) => !prev)}
+            >
+              {previewMode ? 'Edit' : 'Preview'}
+            </Button>
+            <Button
+              appearance="subtle"
+              icon={<Settings className="w-4 h-4" />}
+              onClick={() => setConfigOpen(true)}
+            >
+              Config
+            </Button>
+            <Button
+              appearance="primary"
+              icon={saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+              onClick={handleSave}
+              style={
+                saved
+                  ? {
+                      backgroundColor: tokens.colorPaletteGreenBackground3,
+                      borderColor: tokens.colorPaletteGreenBackground3,
+                    }
+                  : undefined
+              }
+            >
+              {saved ? 'Saved!' : 'Save'}
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Config Modal */}
-      {configOpen && (
-        <ConfigModal
-          onClose={() => setConfigOpen(false)}
-          initialConfig={site.azureConfig}
-          siteName={site.name}
-          siteDescription={site.description}
-          onSave={handleConfigSave}
-          mode="edit"
-        />
-      )}
-    </div>
+        {/* Editor + Preview */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left pane: code editor (hidden when preview mode is active) */}
+          {!previewMode && (
+            <div
+              className="w-2/5 flex flex-col shrink-0 border-r"
+              style={{ borderColor: tokens.colorNeutralStroke1 }}
+            >
+              {/* Tabs */}
+              <div
+                className="px-2 pt-1 shrink-0 border-b"
+                style={{
+                  background: tokens.colorNeutralBackground2,
+                  borderColor: tokens.colorNeutralStroke1,
+                }}
+              >
+                <TabList
+                  selectedValue={activeTab}
+                  onTabSelect={(_, d) => setActiveTab(d.value as EditorTab)}
+                  size="small"
+                >
+                  <Tab value="html" icon={<Code2 className="w-3 h-3" />}>HTML</Tab>
+                  <Tab value="css" icon={<Code2 className="w-3 h-3" />}>CSS</Tab>
+                  <Tab value="snippets">Snippets</Tab>
+                </TabList>
+              </div>
+
+              {/* HTML editor */}
+              {activeTab === 'html' && (
+                <textarea
+                  ref={htmlTextareaRef}
+                  value={html}
+                  onChange={(e) => setHtml(e.target.value)}
+                  className="flex-1 font-mono text-sm p-4 resize-none focus:outline-none"
+                  style={{
+                    background: tokens.colorNeutralBackground1,
+                    color: tokens.colorPaletteGreenForeground3,
+                  }}
+                  placeholder="<!-- Enter your HTML here -->"
+                  spellCheck={false}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                />
+              )}
+
+              {/* CSS editor */}
+              {activeTab === 'css' && (
+                <textarea
+                  value={css}
+                  onChange={(e) => setCss(e.target.value)}
+                  className="flex-1 font-mono text-sm p-4 resize-none focus:outline-none"
+                  style={{
+                    background: tokens.colorNeutralBackground1,
+                    color: tokens.colorPaletteBlueForeground2,
+                  }}
+                  placeholder="/* Enter your CSS here */"
+                  spellCheck={false}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                />
+              )}
+
+              {/* Snippets panel */}
+              {activeTab === 'snippets' && (
+                <div
+                  className="flex-1 overflow-y-auto p-3"
+                  style={{ background: tokens.colorNeutralBackground1 }}
+                >
+                  <p
+                    className="text-xs mb-3"
+                    style={{ color: tokens.colorNeutralForeground3 }}
+                  >
+                    Click a snippet to insert it at the cursor in the HTML editor.
+                  </p>
+                  {Object.entries(snippetsByCategory).map(([category, items]) => (
+                    <div key={category} className="mb-4">
+                      <h3
+                        className="text-xs font-semibold uppercase tracking-wider mb-1.5"
+                        style={{ color: tokens.colorNeutralForeground2 }}
+                      >
+                        {category}
+                      </h3>
+                      <div className="space-y-1">
+                        {items.map((snippet) => (
+                          <Button
+                            key={snippet.id}
+                            appearance="subtle"
+                            onClick={() => insertSnippet(snippet)}
+                            className="w-full"
+                            style={{ justifyContent: 'flex-start' }}
+                          >
+                            {snippet.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Right pane: live preview */}
+          <div className="flex-1 flex flex-col bg-white overflow-hidden">
+            <iframe
+              srcDoc={previewDoc}
+              className="w-full h-full border-none"
+              title={`Preview – ${page.name}`}
+              sandbox="allow-scripts"
+            />
+          </div>
+        </div>
+
+        {/* Config Modal */}
+        {configOpen && (
+          <ConfigModal
+            onClose={() => setConfigOpen(false)}
+            initialConfig={site.azureConfig}
+            siteName={site.name}
+            siteDescription={site.description}
+            onSave={handleConfigSave}
+            mode="edit"
+          />
+        )}
+      </div>
+    </FluentProvider>
   );
 }
