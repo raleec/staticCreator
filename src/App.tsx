@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FluentProvider, webLightTheme } from '@fluentui/react-components';
 import { SiteProvider } from './contexts/SiteContext';
 import ManagementPortal from './components/Management/ManagementPortal';
 import PageBuilder from './components/Builder/PageBuilder';
@@ -19,16 +20,18 @@ export default function App() {
   }
 
   return (
-    <SiteProvider>
-      {view.kind === 'management' ? (
-        <ManagementPortal onOpenBuilder={openBuilder} />
-      ) : (
-        <PageBuilder
-          siteId={view.siteId}
-          pageId={view.pageId}
-          onBack={closeBuilder}
-        />
-      )}
-    </SiteProvider>
+    <FluentProvider theme={webLightTheme}>
+      <SiteProvider>
+        {view.kind === 'management' ? (
+          <ManagementPortal onOpenBuilder={openBuilder} />
+        ) : (
+          <PageBuilder
+            siteId={view.siteId}
+            pageId={view.pageId}
+            onBack={closeBuilder}
+          />
+        )}
+      </SiteProvider>
+    </FluentProvider>
   );
 }

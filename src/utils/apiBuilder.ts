@@ -96,6 +96,9 @@ export async function downloadApiBuilderZip(cfg: ApiBuilderConfig): Promise<void
   root.file('host.json', generateHostJson());
   root.file('local.settings.json', generateLocalSettings());
 
+  const data = root.folder('Data')!;
+  data.file('AppDbContext.cs', generateAppDbContext(cfg));
+
   const models = root.folder('Models')!;
   const functions = root.folder('Functions')!;
 
@@ -402,6 +405,8 @@ function generateCsproj(cfg: ApiBuilderConfig): string {
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.0.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.OpenApi" Version="1.5.1" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.*" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>
@@ -412,8 +417,10 @@ function generateProgramCs(cfg: ApiBuilderConfig): string {
   const ns = sanitiseDot(cfg.serviceName);
   return `using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Extensions.OpenApi.Extensions;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ${ns}.Data;
 
 namespace ${ns};
 
@@ -424,10 +431,14 @@ public class Program
         var host = new HostBuilder()
             .ConfigureFunctionsWebApplication()
             .ConfigureOpenApi()
-            .ConfigureServices(services =>
+            .ConfigureServices((context, services) =>
             {
                 services.AddApplicationInsightsTelemetryWorkerService();
                 services.ConfigureFunctionsApplicationInsights();
+                services.AddDbContext<AppDbContext>(options =>
+                    options.UseSqlServer(
+                        context.Configuration["SqlConnectionString"],
+                        sqlOptions => sqlOptions.EnableRetryOnFailure()));
             })
             .Build();
 
@@ -469,12 +480,48 @@ function generateLocalSettings(): string {
         AzureWebJobsStorage: 'UseDevelopmentStorage=true',
         FUNCTIONS_WORKER_RUNTIME: 'dotnet-isolated',
         APPLICATIONINSIGHTS_CONNECTION_STRING: '',
+        SqlConnectionString: 'Server=localhost;Database=MyDatabase;Trusted_Connection=True;TrustServerCertificate=True;',
       },
     },
     null,
     2,
   );
 }
+
+function generateAppDbContext(cfg: ApiBuilderConfig): string {
+  const ns = sanitiseDot(cfg.serviceName);
+  const dbSets = cfg.tables
+    .map((t) => `    public DbSet<${t.name}> ${t.name}s { get; set; } = null!;`)
+    .join('\n');
+
+  return `using Microsoft.EntityFrameworkCore;
+using ${ns}.Models;
+
+namespace ${ns}.Data;
+
+public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+{
+${dbSets}
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+${cfg.tables
+  .map((t) => {
+    const pkCol = t.columns.find((c) => c.isPrimaryKey) ?? t.columns[0];
+    const pkName = pkCol ? pkCol.name : 'Id';
+    return `        modelBuilder.Entity<${t.name}>(entity =>
+        {
+            entity.HasKey(e => e.${pkName});
+            entity.ToTable("${t.name}");
+        });`;
+  })
+  .join('\n')}
+    }
+}
+`;
+}
+
 
 function generateModelClass(cfg: ApiBuilderConfig, table: TableDefinition): string {
   const ns = sanitiseDot(cfg.serviceName);
@@ -517,13 +564,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Attributes;
 using Microsoft.Azure.WebJobs.Extensions.OpenApi.Core.Enums;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using ${ns}.Data;
 using ${ns}.Models;
 
 namespace ${ns}.Functions;
 
-public class ${table.name}Functions(ILogger<${table.name}Functions> logger)
+public class ${table.name}Functions(ILogger<${table.name}Functions> logger, AppDbContext db)
 {
     // ── GET /${resource} ──────────────────────────────────────────────────────
 
@@ -537,15 +586,25 @@ public class ${table.name}Functions(ILogger<${table.name}Functions> logger)
         contentType: "application/json", bodyType: typeof(PagedResult<${table.name}>))]
     [OpenApiSecurity("bearer", SecuritySchemeType.Http, Scheme = OpenApiSecuritySchemeType.Bearer, BearerFormat = "JWT")]
     [Function("List${table.name}s")]
-    public IActionResult List${table.name}s(
+    public async Task<IActionResult> List${table.name}s(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "${routeBase}")] HttpRequest req)
     {
         logger.LogInformation("List${table.name}s invoked");
-        var correlationId = GetOrCreateCorrelationId(req);
 
-        // TODO: replace with real data-access logic
-        var items = Array.Empty<${table.name}>();
-        var result = new PagedResult<${table.name}> { Value = items };
+        var top  = int.TryParse(req.Query["\\$top"],  out var t) ? Math.Clamp(t, 1, 200) : 50;
+        var skip = int.TryParse(req.Query["\\$skip"], out var s) ? Math.Max(s, 0) : 0;
+
+        var total = await db.${table.name}s.CountAsync();
+        var items = await db.${table.name}s.Skip(skip).Take(top).ToListAsync();
+
+        var result = new PagedResult<${table.name}>
+        {
+            Value      = items,
+            TotalCount = total,
+            NextLink   = (skip + top < total)
+                ? $"{req.Path}?\\$skip={skip + top}&\\$top={top}"
+                : null,
+        };
 
         return new OkObjectResult(result);
     }
@@ -579,7 +638,8 @@ public class ${table.name}Functions(ILogger<${table.name}Functions> logger)
         if (item is null)
             return BadRequestError("EmptyBody", "Request body is required.", correlationId);
 
-        // TODO: persist item and assign generated primary key
+        db.${table.name}s.Add(item);
+        await db.SaveChangesAsync();
 
         return new CreatedAtRouteResult(null, item);
     }
@@ -593,13 +653,17 @@ public class ${table.name}Functions(ILogger<${table.name}Functions> logger)
         contentType: "application/json", bodyType: typeof(${table.name}))]
     [OpenApiSecurity("bearer", SecuritySchemeType.Http, Scheme = OpenApiSecuritySchemeType.Bearer, BearerFormat = "JWT")]
     [Function("Get${table.name}ById")]
-    public IActionResult Get${table.name}ById(
+    public async Task<IActionResult> Get${table.name}ById(
         [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "${routeBase}/{${pkName}}")] HttpRequest req,
         ${pkCsType} ${pkName})
     {
         logger.LogInformation("Get${table.name}ById: {Id}", ${pkName});
-        // TODO: fetch by primary key
-        return new NotFoundResult();
+
+        var item = await db.${table.name}s.FindAsync(${pkName});
+        if (item is null)
+            return new NotFoundResult();
+
+        return new OkObjectResult(item);
     }
 
     // ── PUT /${resource}/{${pkName}} ──────────────────────────────────────────
@@ -618,6 +682,7 @@ public class ${table.name}Functions(ILogger<${table.name}Functions> logger)
     {
         logger.LogInformation("Replace${table.name}: {Id}", ${pkName});
         var correlationId = GetOrCreateCorrelationId(req);
+
         ${table.name}? item;
         try
         {
@@ -632,8 +697,14 @@ public class ${table.name}Functions(ILogger<${table.name}Functions> logger)
         if (item is null)
             return BadRequestError("EmptyBody", "Request body is required.", correlationId);
 
-        // TODO: update record
-        return new OkObjectResult(item);
+        var existing = await db.${table.name}s.FindAsync(${pkName});
+        if (existing is null)
+            return new NotFoundResult();
+
+        db.Entry(existing).CurrentValues.SetValues(item);
+        await db.SaveChangesAsync();
+
+        return new OkObjectResult(existing);
     }
 
     // ── DELETE /${resource}/{${pkName}} ───────────────────────────────────────
@@ -644,13 +715,20 @@ public class ${table.name}Functions(ILogger<${table.name}Functions> logger)
     [OpenApiResponseWithoutBody(statusCode: System.Net.HttpStatusCode.NoContent)]
     [OpenApiSecurity("bearer", SecuritySchemeType.Http, Scheme = OpenApiSecuritySchemeType.Bearer, BearerFormat = "JWT")]
     [Function("Delete${table.name}")]
-    public IActionResult Delete${table.name}(
+    public async Task<IActionResult> Delete${table.name}(
         [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "${routeBase}/{${pkName}}")] HttpRequest req,
         ${pkCsType} ${pkName})
     {
         logger.LogInformation("Delete${table.name}: {Id}", ${pkName});
-        // TODO: delete record
-        return new NotFoundResult();
+
+        var item = await db.${table.name}s.FindAsync(${pkName});
+        if (item is null)
+            return new NotFoundResult();
+
+        db.${table.name}s.Remove(item);
+        await db.SaveChangesAsync();
+
+        return new NoContentResult();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
