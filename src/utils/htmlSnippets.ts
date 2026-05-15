@@ -152,7 +152,7 @@ export function getHtmlSnippets(): HtmlSnippet[] {
   </div>
   <div style="${FIELD_WRAP}">
     <label style="${LABEL_STYLE}">Message</label>
-    <textarea name="message" rows="4" placeholder="Your message..." style="${INPUT_STYLE}resize:vertical;"></textarea>
+    <textarea name="message" rows="4" placeholder="Your message..." style="${INPUT_STYLE};resize:vertical;"></textarea>
   </div>
   <button type="submit" style="width:100%;padding:10px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:.9rem;">Submit</button>
 </form>`,
@@ -181,7 +181,7 @@ export function getHtmlSnippets(): HtmlSnippet[] {
       category: 'Forms',
       html: `<div style="${FIELD_WRAP}">
   <label style="${LABEL_STYLE}">Select</label>
-  <select name="selectField" style="${INPUT_STYLE}appearance:none;background:#fff;">
+  <select name="selectField" style="${INPUT_STYLE};appearance:none;background:#fff;">
     <option value="">Choose an option…</option>
     <option value="option1">Option 1</option>
     <option value="option2">Option 2</option>
@@ -194,7 +194,7 @@ export function getHtmlSnippets(): HtmlSnippet[] {
       category: 'Forms',
       html: `<div style="${FIELD_WRAP}">
   <label style="${LABEL_STYLE}">Message</label>
-  <textarea name="message" rows="4" placeholder="Enter your message…" style="${INPUT_STYLE}resize:vertical;"></textarea>
+  <textarea name="message" rows="4" placeholder="Enter your message…" style="${INPUT_STYLE};resize:vertical;"></textarea>
 </div>`,
     },
     {
