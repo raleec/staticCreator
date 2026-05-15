@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Editor } from 'grapesjs';
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
-import { ArrowLeft, Save, Eye, EyeOff, Settings } from 'lucide-react';
+import { ArrowLeft, Save, Check, Eye, EyeOff, Settings } from 'lucide-react';
 import {
   FluentProvider,
   webDarkTheme,
@@ -344,7 +344,7 @@ export default function PageBuilder({ siteId, pageId, onBack }: PageBuilderProps
             </Button>
             <Button
               appearance="primary"
-              icon={<Save className="w-4 h-4" />}
+              icon={saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
               onClick={handleSave}
               style={
                 saved
