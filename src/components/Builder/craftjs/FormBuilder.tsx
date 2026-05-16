@@ -53,6 +53,10 @@ const supportsPlaceholder = (type: FormField['type']): boolean => {
   return type !== 'checkbox' && type !== 'radio' && type !== 'file';
 };
 
+// Default validation rule values
+const DEFAULT_MIN_LENGTH = 3;
+const DEFAULT_MIN_LENGTH_MESSAGE = 'Minimum 3 characters';
+
 // Form templates
 const formTemplates: FormTemplate[] = [
   {
@@ -83,7 +87,7 @@ const formTemplates: FormTemplate[] = [
       { type: 'text', label: 'First Name', placeholder: 'John', required: true, page: 1 },
       { type: 'text', label: 'Last Name', placeholder: 'Doe', required: true, page: 1 },
       { type: 'email', label: 'Email Address', placeholder: 'john.doe@example.com', required: true, page: 1 },
-      { type: 'number', label: 'Phone Number', placeholder: '123-456-7890', required: true, page: 2 },
+      { type: 'text', label: 'Phone Number', placeholder: '123-456-7890', required: true, page: 2 },
       { type: 'select', label: 'Country', required: true, options: ['United States', 'Canada', 'United Kingdom', 'Australia', 'Other'], page: 2 },
       { type: 'checkbox', label: 'I agree to the terms and conditions', required: true, page: 3 },
     ],
@@ -180,7 +184,9 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
         if (!dependentField) return false;
 
         // In preview mode, use previewValue if available, otherwise empty string
-        // Note: In a real form, this would check against actual user input
+        // Note: previewValue would be set by form input handlers in a production implementation
+        // to track user selections. In the builder, it's not populated, so conditions won't
+        // be visible until the form is actually used.
         const fieldValue = dependentField.previewValue || '';
 
         switch (rule.operator) {
@@ -795,7 +801,7 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
                     <button
                       onClick={() => {
                         const newValidation = [...(selectedFieldData.validation || [])];
-                        newValidation.push({ type: 'minLength', value: 3, message: 'Minimum 3 characters' });
+                        newValidation.push({ type: 'minLength', value: DEFAULT_MIN_LENGTH, message: DEFAULT_MIN_LENGTH_MESSAGE });
                         updateField(selectedFieldData.id, { validation: newValidation });
                       }}
                       style={{
