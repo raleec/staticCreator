@@ -21,16 +21,8 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
     connectors: { connect, drag },
   } = useNode();
 
-  // Counter for generating unique IDs
-  const nextIdRef = useRef(1);
-  const getNextId = useCallback(() => {
-    const id = nextIdRef.current;
-    nextIdRef.current += 1;
-    return id.toString();
-  }, []);
-
   // Parse initial form fields from JSON or use defaults
-  const getInitialFields = (): FormField[] => {
+  const [fields, setFields] = useState<FormField[]>(() => {
     try {
       const parsed = typeof initialJson === 'string' ? JSON.parse(initialJson) : initialJson;
       if (parsed.fields && Array.isArray(parsed.fields)) {
@@ -49,9 +41,22 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
         required: true,
       },
     ];
-  };
+  });
 
-  const [fields, setFields] = useState<FormField[]>(getInitialFields);
+  // Counter for generating unique IDs - calculate max after fields are initialized
+  const nextIdRef = useRef(
+    fields.reduce((max, field) => {
+      const numId = parseInt(field.id, 10);
+      return !isNaN(numId) && numId >= max ? numId + 1 : max;
+    }, 2)
+  );
+
+  const getNextId = useCallback(() => {
+    const id = nextIdRef.current;
+    nextIdRef.current += 1;
+    return id.toString();
+  }, []);
+
   const [selectedField, setSelectedField] = useState<string | null>(null);
 
   const addField = (type: FormField['type']) => {
@@ -223,7 +228,7 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
                 >
                   <option>Select an option</option>
                   {field.options?.map((opt, i) => (
-                    <option key={i}>{opt}</option>
+                    <option key={`${field.id}-opt-${i}`}>{opt}</option>
                   ))}
                 </select>
               ) : field.type === 'checkbox' ? (
@@ -234,7 +239,7 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
               ) : field.type === 'radio' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {field.options?.map((opt, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div key={`${field.id}-radio-${i}`} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <input type="radio" name={field.id} disabled />
                       <span style={{ fontSize: '14px' }}>{opt}</span>
                     </div>
