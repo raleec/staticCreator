@@ -29,6 +29,7 @@ Build pages visually, configure API integrations, and export a ready-to-deploy Z
 ## Features
 
 - **Visual page builder** powered by [Craft.js](https://craft.js.org/) — drag and drop pre-built components to build pages visually with real-time preview
+- **Drag-and-drop form builder** powered by [SurveyJS](https://surveyjs.io/) — create sophisticated forms, surveys, and questionnaires with no code
 - **Two deployment modes** — **Azure** (Azure Static Web Apps + MSAL authentication) or **Generic** (any static host, no Azure account needed)
 - **Azure AD / MSAL authentication** baked into every exported Azure-mode page
 - Support for **Azure Commercial, Government (MAG), and DoD** clouds
@@ -214,6 +215,7 @@ For Government or DoD clouds, register the app in the corresponding sovereign Az
    - **Container** — flexible container for grouping other components
    - **2 Columns** — two-column layout grid
    - **Text** — simple text block
+   - **Form Builder** — drag-and-drop form designer powered by SurveyJS (see [Form Builder documentation](docs/form-builder.md))
 4. Click and drag components on the canvas to reposition them
 5. Toggle **Preview** mode to see the final rendered page
 6. Click **Config** (gear icon) to edit the site's configuration
