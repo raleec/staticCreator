@@ -21,8 +21,13 @@ The Form Builder is a custom-built, drag-and-drop form creation component integr
 ### Features
 
 - **Visual Form Designer**: Drag-and-drop interface for building forms
-- **Multiple Field Types**: Text, email, number, textarea, dropdown, checkbox, and radio buttons
+- **Multiple Field Types**: Text, email, number, textarea, dropdown, checkbox, radio buttons, and file uploads
 - **Field Configuration**: Customize labels, placeholders, required status, and options
+- **Validation Rules**: Add custom validation (min/max length, patterns, etc.) with error messages
+- **Conditional Logic**: Show/hide fields based on other field values
+- **Multi-Page Forms**: Break long forms into multiple pages with navigation
+- **Form Templates**: Pre-built templates for common use cases (contact, survey, registration, job application)
+- **Custom Styling**: Theme customization with colors and spacing options
 - **Visual Preview**: Real-time preview of the form as you build
 - **Field Reordering**: Move fields up and down with simple controls
 - **Responsive Design**: Forms work on desktop, tablet, and mobile
@@ -47,6 +52,24 @@ In the right panel, click on any field type to add it to your form:
 - **Dropdown**: Select from a list of options
 - **Checkbox**: Single yes/no option
 - **Radio Buttons**: Choose one from multiple options
+- **File Upload**: Allow users to upload files with configurable file type and size limits
+
+#### Using Templates
+
+1. Click the "Templates" button in the top bar
+2. Choose from pre-built templates:
+   - **Contact Form**: Simple contact form with name, email, subject, and message
+   - **Survey Form**: Customer feedback survey with multiple pages
+   - **Registration Form**: User registration with personal details
+   - **Job Application**: Job application form with file uploads
+3. The template will replace your current form (save first if needed!)
+
+#### Multi-Page Forms
+
+1. Click "+ Add Page" in the top bar to create a new page
+2. Assign fields to different pages using the "Page" field in settings
+3. Navigate between pages using the arrow buttons
+4. Users will see page numbers and navigation when filling out the form
 
 #### Configuring Fields
 
@@ -55,16 +78,44 @@ In the right panel, click on any field type to add it to your form:
    - **Label**: The field name shown to users
    - **Placeholder**: Hint text inside the field (for text inputs)
    - **Required**: Mark the field as mandatory
+   - **Page**: Assign the field to a specific page
    - **Options**: For dropdown and radio buttons, configure available choices
+   - **Accepted File Types**: For file uploads, specify allowed extensions (e.g., .pdf,.doc)
+   - **Max File Size**: For file uploads, set maximum size in MB
 
-#### Reordering Fields
+#### Adding Validation Rules
 
-- Use the **↑** and **↓** buttons on each field to move it up or down
-- Fields can also be deleted using the trash icon
+For text, number, and textarea fields:
+1. Click "+ Add Validation Rule" in the field settings
+2. Choose validation type:
+   - **Min Length**: Minimum number of characters
+   - **Max Length**: Maximum number of characters
+   - **Min Value**: Minimum numeric value
+   - **Max Value**: Maximum numeric value
+   - **Pattern**: Regular expression pattern
+3. Enter the value and optional custom error message
+4. Add multiple validation rules if needed
+
+#### Setting Up Conditional Logic
+
+Make fields appear/disappear based on other field values:
+1. Click "+ Add Condition" in the field settings
+2. Select which field to depend on
+3. Choose an operator (equals, not equals, contains, greater than, less than)
+4. Enter the comparison value
+5. The field will only show when all conditions are met
+
+#### Customizing Theme
+
+At the bottom of the right panel:
+1. **Primary Color**: Change the accent color used for buttons and highlights
+2. **Background Color**: Set the form background color
+3. **Spacing**: Choose between Compact, Normal, or Relaxed spacing
+4. Changes apply immediately to the preview
 
 ### Form Data Storage
 
-Forms are stored as JSON data within the page builder state. The JSON structure includes:
+Forms are stored as JSON data within the page builder state. The JSON structure now includes:
 
 ```json
 {
@@ -74,13 +125,39 @@ Forms are stored as JSON data within the page builder state. The JSON structure 
       "type": "text",
       "label": "Name",
       "placeholder": "Enter your name",
-      "required": true
+      "required": true,
+      "page": 1,
+      "validation": [
+        {
+          "type": "minLength",
+          "value": 3,
+          "message": "Name must be at least 3 characters"
+        }
+      ]
     },
     {
+      "id": "2",
       "type": "email",
       "label": "Email Address",
       "placeholder": "your@email.com",
-      "required": true
+      "required": true,
+      "page": 1
+    },
+    {
+      "id": "3",
+      "type": "file",
+      "label": "Resume",
+      "required": true,
+      "accept": ".pdf,.doc,.docx",
+      "maxFileSize": 5,
+      "page": 2,
+      "conditionalRules": [
+        {
+          "fieldId": "1",
+          "operator": "notEquals",
+          "value": ""
+        }
+      ]
     }
   ]
 }
@@ -155,6 +232,28 @@ The Form Builder creates the form structure, but you'll need to handle submissio
 - **Dropdowns**: Good for 4+ options; use radio buttons for 2-3 options
 - **Checkboxes**: For optional yes/no questions
 - **Radio Buttons**: For mandatory choice between options
+- **File Uploads**: For documents, images, or other files (configure file types and size limits)
+
+### Validation Best Practices
+
+- Add validation to ensure data quality
+- Use clear, helpful error messages
+- Combine multiple validation rules when needed (e.g., min and max length)
+- Use pattern validation for complex formats (phone numbers, postal codes)
+
+### Multi-Page Form Tips
+
+- Group related fields on the same page
+- Keep pages short (5-7 fields maximum)
+- Use logical flow (personal info → details → confirmation)
+- Show progress indicators so users know how far they've progressed
+
+### Conditional Logic Tips
+
+- Use to reduce form complexity
+- Hide irrelevant questions based on previous answers
+- Keep conditions simple and clear
+- Test all condition paths to ensure they work correctly
 
 ### Performance
 
@@ -184,17 +283,25 @@ The Form Builder uses inline styles, but you can:
 2. Override styles through CSS if needed
 3. Customize the component directly in FormBuilder.tsx
 
-## Future Enhancements
+## Features Implemented
 
-Potential improvements for future versions:
+All the features from the "Future Enhancements" section have been implemented:
 
-- **Validation Rules**: Add custom validation for fields
-- **Conditional Logic**: Show/hide fields based on other answers
-- **File Uploads**: Support for file upload fields
-- **Multi-Page Forms**: Break long forms into multiple pages
-- **Templates**: Pre-built form templates for common use cases
-- **Export Options**: Export forms as HTML/CSS for use outside the builder
-- **Custom Styling**: Theme customization options
+- ✅ **Validation Rules**: Add custom validation for fields (min/max length, patterns, etc.)
+- ✅ **Conditional Logic**: Show/hide fields based on other field values
+- ✅ **File Uploads**: Support for file upload fields with type and size restrictions
+- ✅ **Multi-Page Forms**: Break long forms into multiple pages with navigation
+- ✅ **Templates**: Pre-built form templates for common use cases
+- ✅ **Custom Styling**: Theme customization with colors and spacing options
+
+### Additional Improvements
+
+- Enhanced field settings panel with organized sections
+- Visual indicators for fields with validation or conditional logic
+- Real-time theme preview
+- Template selector with descriptions
+- Page management with navigation controls
+- Progress indicator for multi-page forms
 
 ## Comparison to Previous Version
 
