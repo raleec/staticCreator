@@ -28,7 +28,7 @@ Build pages visually, configure API integrations, and export a ready-to-deploy Z
 
 ## Features
 
-- **Visual page builder** powered by [Webstudio](https://webstudio.is/) workflow — write HTML & CSS in a split-pane code editor with a live preview, and use pre-built snippets to jumpstart your layouts
+- **Visual page builder** powered by [Craft.js](https://craft.js.org/) — drag and drop pre-built components to build pages visually with real-time preview
 - **Two deployment modes** — **Azure** (Azure Static Web Apps + MSAL authentication) or **Generic** (any static host, no Azure account needed)
 - **Azure AD / MSAL authentication** baked into every exported Azure-mode page
 - Support for **Azure Commercial, Government (MAG), and DoD** clouds
@@ -95,15 +95,13 @@ The landing screen where you manage sites and pages.
 
 ### Page Builder
 
-A full-screen HTML/CSS code editor for designing a page, with a live preview pane.
+A full-screen Craft.js drag-and-drop editor for designing a page with visual components.
 
-- **HTML tab** — write or paste your page HTML; syntax is highlighted in green
-- **CSS tab** — add custom styles; highlighted in blue
-- **Snippets tab** — click any pre-built block (Hero, Navbar, Card, API Form, etc.) to insert it at the cursor in the HTML editor
-- **Open in Webstudio** (top-right) — opens [Webstudio](https://webstudio.is/) in a new tab for visual drag-and-drop editing; copy the resulting HTML/CSS back into the code editor
+- **Blocks panel** (left) — drag pre-built components (Section, Hero, Card, Button, etc.) onto the canvas
+- **Canvas** — visual editor where you can drag, drop, and arrange components
 - **Save** — persists the current page content to `localStorage`
-- **Preview** — toggles full-screen live preview mode
-- **Settings** (gear icon) — edit the site's configuration without leaving the builder
+- **Preview** — toggles between edit mode and preview mode to see the final result
+- **Config** (gear icon) — edit the site's configuration without leaving the builder
 - **Back** — return to the Management Portal
 
 ---
@@ -207,14 +205,18 @@ For Government or DoD clouds, register the app in the corresponding sovereign Az
 ## Building Pages
 
 1. Create a site, then click **Add Page** and give the page a name
-2. The page opens in the code editor with a live preview pane
-3. Use the **HTML** tab to write your page markup
-4. Use the **CSS** tab to add custom styles
-5. Use the **Snippets** tab to insert pre-built blocks:
-   - **Layout** — Section, 2/3 Columns, Divider
-   - **Components** — Hero, Navbar, Footer, Card, Button, Login Form
-   - **Forms** — API Form, Text Input, Email Input, Dropdown, Text Area, Hidden Field
-6. Click **Open in Webstudio** to design visually in [Webstudio](https://webstudio.is/), then copy the exported HTML/CSS back into the editor
+2. The page opens in the Craft.js drag-and-drop editor
+3. Use the **Blocks panel** on the left to drag components onto the canvas:
+   - **Section** — basic content section with title and paragraph
+   - **Hero** — full-width hero banner with gradient background
+   - **Card** — card component with title, description, and link
+   - **Button** — call-to-action button
+   - **Container** — flexible container for grouping other components
+   - **2 Columns** — two-column layout grid
+   - **Text** — simple text block
+4. Click and drag components on the canvas to reposition them
+5. Toggle **Preview** mode to see the final rendered page
+6. Click **Config** (gear icon) to edit the site's configuration
 7. Click **Save** (or press **Ctrl+S** / **Cmd+S**) to persist your work
 
 ### Form data attributes
