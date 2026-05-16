@@ -8,6 +8,7 @@ import {
   Hero,
   Card,
   TwoColumns,
+  FormBuilder,
 } from './components';
 
 export const Toolbox = () => {
@@ -48,6 +49,11 @@ export const Toolbox = () => {
       id: '2-columns',
       label: '2 Columns',
       create: () => <TwoColumns />,
+    },
+    {
+      id: 'form-builder',
+      label: 'Form Builder',
+      create: () => <FormBuilder />,
     },
   ];
 

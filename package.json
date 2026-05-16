@@ -18,7 +18,10 @@
     "jszip": "^3.10.1",
     "lucide-react": "^1.14.0",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "survey-core": "^2.5.24",
+    "survey-creator-core": "^2.5.24",
+    "survey-creator-react": "^2.5.24"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

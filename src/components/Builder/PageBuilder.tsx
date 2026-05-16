@@ -18,6 +18,7 @@ import {
   Hero,
   Card,
   TwoColumns,
+  FormBuilder,
 } from './craftjs/components';
 import { Toolbox } from './craftjs/Toolbox';
 
@@ -109,6 +110,7 @@ export default function PageBuilder({ siteId, pageId, onBack }: PageBuilderProps
           Hero,
           Card,
           TwoColumns,
+          FormBuilder,
         }}
       >
         <div
