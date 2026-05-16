@@ -31,6 +31,7 @@ interface FormField {
   accept?: string; // For file uploads
   maxFileSize?: number; // In MB
   page?: number; // For multi-page forms
+  previewValue?: string; // For preview mode conditional logic evaluation
 }
 
 interface FormTheme {
@@ -46,6 +47,11 @@ interface FormTemplate {
   description: string;
   fields: Omit<FormField, 'id'>[];
 }
+
+// Helper function to check if a field type supports placeholder
+const supportsPlaceholder = (type: FormField['type']): boolean => {
+  return type !== 'checkbox' && type !== 'radio' && type !== 'file';
+};
 
 // Form templates
 const formTemplates: FormTemplate[] = [
@@ -173,9 +179,9 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
         const dependentField = fields.find((f) => f.id === rule.fieldId);
         if (!dependentField) return false;
 
-        // For simplicity, we're checking against field's current value in preview
-        // In a real form, this would check against user input
-        const fieldValue = dependentField.placeholder || '';
+        // In preview mode, use previewValue if available, otherwise empty string
+        // Note: In a real form, this would check against actual user input
+        const fieldValue = dependentField.previewValue || '';
 
         switch (rule.operator) {
           case 'equals':
@@ -216,7 +222,7 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
       id: getNextId(),
       type,
       label: `New ${type} field`,
-      placeholder: type !== 'checkbox' && type !== 'radio' && type !== 'file' ? `Enter ${type}` : undefined,
+      placeholder: supportsPlaceholder(type) ? `Enter ${type}` : undefined,
       required: false,
       options: type === 'select' || type === 'radio' ? ['Option 1', 'Option 2', 'Option 3'] : undefined,
       page: currentPage,
@@ -241,11 +247,20 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
   const moveField = (id: string, direction: 'up' | 'down') => {
     const index = fields.findIndex((f) => f.id === id);
     if (index === -1) return;
-    if (direction === 'up' && index === 0) return;
-    if (direction === 'down' && index === fields.length - 1) return;
+
+    const field = fields[index];
+    const currentPageFieldsFiltered = fields.filter((f) => (f.page || 1) === (field.page || 1));
+    const pageIndex = currentPageFieldsFiltered.findIndex((f) => f.id === id);
+
+    if (direction === 'up' && pageIndex === 0) return;
+    if (direction === 'down' && pageIndex === currentPageFieldsFiltered.length - 1) return;
+
+    const targetField = direction === 'up' 
+      ? currentPageFieldsFiltered[pageIndex - 1] 
+      : currentPageFieldsFiltered[pageIndex + 1];
+    const targetIndex = fields.findIndex((f) => f.id === targetField.id);
 
     const newFields = [...fields];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
     [newFields[index], newFields[targetIndex]] = [newFields[targetIndex], newFields[index]];
     setFields(newFields);
   };
@@ -659,7 +674,7 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
                   }}
                 />
               </div>
-              {selectedFieldData.type !== 'checkbox' && selectedFieldData.type !== 'radio' && selectedFieldData.type !== 'file' && (
+              {supportsPlaceholder(selectedFieldData.type) && (
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', marginBottom: '4px' }}>
                     Placeholder
