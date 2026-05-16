@@ -1,5 +1,5 @@
 import { useNode } from '@craftjs/core';
-import { useMemo, useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { SurveyCreatorComponent, SurveyCreator } from 'survey-creator-react';
 import type { ICreatorOptions } from 'survey-creator-core';
 import 'survey-core/survey-core.min.css';
@@ -16,9 +16,13 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
   } = useNode();
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const [creator, setCreator] = useState<SurveyCreator | null>(null);
+  const creatorRef = useRef<SurveyCreator | null>(null);
 
-  // Use useMemo to create the creator instance instead of useState + useEffect
-  const creator = useMemo(() => {
+  // Initialize creator only once
+  useEffect(() => {
+    if (creatorRef.current) return;
+
     // Configure SurveyJS Creator
     const options: ICreatorOptions = {
       showLogicTab: true,
@@ -27,7 +31,9 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
       isAutoSave: true,
     };
 
-    // Parse initial JSON if provided
+    const creatorInstance = new SurveyCreator(options);
+    
+    // Set initial survey JSON
     let json = {};
     try {
       json = typeof initialJson === 'string' ? JSON.parse(initialJson) : initialJson;
@@ -35,9 +41,6 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
       console.warn('Invalid initial JSON for form builder:', e);
     }
 
-    const creatorInstance = new SurveyCreator(options);
-    
-    // Set initial survey JSON
     if (Object.keys(json).length > 0) {
       creatorInstance.JSON = json;
     } else {
@@ -60,7 +63,30 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
       };
     }
 
-    return creatorInstance;
+    creatorRef.current = creatorInstance;
+    setCreator(creatorInstance);
+
+    return () => {
+      // Cleanup on unmount
+      if (creatorRef.current) {
+        creatorRef.current.dispose();
+        creatorRef.current = null;
+      }
+    };
+  }, []); // Empty dependency array - only run once
+
+  // Update JSON when initialJson prop changes
+  useEffect(() => {
+    if (!creatorRef.current || !initialJson) return;
+
+    try {
+      const json = typeof initialJson === 'string' ? JSON.parse(initialJson) : initialJson;
+      if (Object.keys(json).length > 0) {
+        creatorRef.current.JSON = json;
+      }
+    } catch (e) {
+      console.warn('Invalid JSON update for form builder:', e);
+    }
   }, [initialJson]);
 
   return (
@@ -80,9 +106,11 @@ export const FormBuilder = ({ initialJson = '{}', height = '600px' }: FormBuilde
         background: '#fff',
       }}
     >
-      <div style={{ height: '100%' }}>
-        <SurveyCreatorComponent creator={creator} />
-      </div>
+      {creator && (
+        <div style={{ height: '100%' }}>
+          <SurveyCreatorComponent creator={creator} />
+        </div>
+      )}
     </div>
   );
 };
