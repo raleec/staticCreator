@@ -2,243 +2,219 @@
 
 ## Overview
 
-The staticCreator page builder now includes a powerful drag-and-drop **Form Builder** component powered by [SurveyJS](https://surveyjs.io/). This integration allows users to create sophisticated forms, surveys, and questionnaires without writing code.
+The Form Builder is a custom-built, drag-and-drop form creation component integrated into the staticCreator page builder. It allows users to visually design forms by adding fields, configuring their properties, and previewing the result in real-time.
 
-## Why SurveyJS?
+**License**: Fully open-source (MIT) - No commercial license required for production use.
 
-After evaluating multiple options (SurveyJS, FormEngine, Form.io, OpnForm, HeyForm), we selected **SurveyJS** for the following reasons:
+## Why a Custom Form Builder?
 
 ### Key Advantages
 
 - **✅ Perfect for Static Web Apps**: Fully client-side with no backend dependencies
 - **✅ Native React Integration**: Built specifically for React applications
-- **✅ MIT License**: Open source and free to use
-- **✅ Modern UI**: Intuitive drag-and-drop interface
+- **✅ MIT License**: Open source and free to use in production
+- **✅ No License Fees**: Unlike commercial alternatives, this is completely free
 - **✅ Craft.js Compatible**: Seamlessly integrates as a Craft.js component
 - **✅ No Server Required**: All form building happens in the browser
+- **✅ Lightweight**: Minimal dependencies, fast loading
 
 ### Features
 
 - **Visual Form Designer**: Drag-and-drop interface for building forms
-- **Rich Question Types**: Text, dropdown, checkbox, radio, matrix, rating, and more
-- **Conditional Logic**: Show/hide questions based on previous answers
-- **JSON Export**: Forms are saved as JSON for easy storage and portability
+- **Multiple Field Types**: Text, email, number, textarea, dropdown, checkbox, and radio buttons
+- **Field Configuration**: Customize labels, placeholders, required status, and options
+- **Visual Preview**: Real-time preview of the form as you build
+- **Field Reordering**: Move fields up and down with simple controls
 - **Responsive Design**: Forms work on desktop, tablet, and mobile
-- **Customizable**: Full control over styling and behavior
 
 ## How to Use
 
 ### Adding a Form to Your Page
 
-1. **Create or Edit a Page**: Navigate to the page builder
-2. **Open the Blocks Panel**: Find the "Form Builder" option in the left sidebar
-3. **Drag and Drop**: Drag the "Form Builder" block onto your canvas
-4. **Build Your Form**: The SurveyJS Creator interface will appear
+1. Open the Page Builder for your site
+2. Click on "Form Builder" in the Blocks panel on the left
+3. The form builder will appear on the canvas with a default field
 
 ### Building Your Form
 
-The Form Builder provides three main tabs:
+#### Adding Fields
 
-1. **Designer**: Visual drag-and-drop interface
-   - Add questions from the toolbox
-   - Configure question properties
-   - Arrange questions on pages
-   - Set up conditional logic
+In the right panel, click on any field type to add it to your form:
+- **Text Input**: Single-line text entry
+- **Email**: Email address input with validation
+- **Number**: Numeric input field
+- **Text Area**: Multi-line text entry
+- **Dropdown**: Select from a list of options
+- **Checkbox**: Single yes/no option
+- **Radio Buttons**: Choose one from multiple options
 
-2. **Logic**: Define branching and skip logic
-   - Show/hide questions based on answers
-   - Calculate values
-   - Run custom expressions
+#### Configuring Fields
 
-3. **JSON Editor**: Direct access to the form definition
-   - View and edit raw JSON
-   - Import existing forms
-   - Advanced customization
+1. Click on any field in the preview to select it
+2. The right panel will show field settings:
+   - **Label**: The field name shown to users
+   - **Placeholder**: Hint text inside the field (for text inputs)
+   - **Required**: Mark the field as mandatory
+   - **Options**: For dropdown and radio buttons, configure available choices
 
-### Question Types
+#### Reordering Fields
 
-The Form Builder supports various question types:
+- Use the **↑** and **↓** buttons on each field to move it up or down
+- Fields can also be deleted using the trash icon
 
-- **Single Input**: Text, email, number, date
-- **Single Choice**: Radio buttons, dropdown
-- **Multiple Choice**: Checkboxes, tag box
-- **Text**: Comment box, long text
-- **Rating**: Stars, smileys, numeric rating
-- **Matrix**: Grid questions
-- **Image Picker**: Visual selection
-- **File Upload**: Attach files
-- **Signature**: Capture signatures
-- **Boolean**: Yes/No, True/False
+### Form Data Storage
 
-### Saving Forms
+Forms are stored as JSON data within the page builder state. The JSON structure includes:
 
-Forms are automatically saved as part of your page design. The form definition is stored as JSON within the Craft.js page state.
+```json
+{
+  "fields": [
+    {
+      "id": "1",
+      "type": "text",
+      "label": "Name",
+      "placeholder": "Enter your name",
+      "required": true
+    },
+    {
+      "type": "email",
+      "label": "Email Address",
+      "placeholder": "your@email.com",
+      "required": true
+    }
+  ]
+}
+```
 
 ## Technical Details
 
 ### Implementation
 
-The Form Builder is implemented as a Craft.js component that wraps the SurveyJS Creator:
+The Form Builder is implemented as a Craft.js component that provides a split-pane interface:
 
 ```typescript
 // File: src/components/Builder/craftjs/FormBuilder.tsx
 export const FormBuilder = ({ initialJson, height }: FormBuilderProps) => {
-  // Component creates a SurveyCreator instance
+  // Component manages form fields state
+  // Left pane: Form preview with field rendering
+  // Right pane: Field type selector and settings panel
   // Integrates with Craft.js using useNode hook
-  // Renders SurveyCreatorComponent
 }
 ```
 
 ### Dependencies
 
-The following packages are required:
+The Form Builder uses minimal dependencies:
+- `@craftjs/core`: For drag-and-drop integration
+- `lucide-react`: For UI icons (MIT License)
+- `react`: Core React library
 
-- `survey-core`: Core SurveyJS library
-- `survey-creator-core`: Form builder core
-- `survey-creator-react`: React bindings for the creator
-
-### Configuration
-
-The Form Builder is configured with:
-
-- **showLogicTab**: `true` - Enable conditional logic
-- **showTranslationTab**: `false` - Disable translations (can be enabled if needed)
-- **showJSONEditorTab**: `true` - Allow JSON editing
-- **isAutoSave**: `true` - Automatically save changes
+No commercial or proprietary libraries are required.
 
 ### Styling
 
-The Form Builder uses SurveyJS's default styling with custom CSS imports:
-
-```typescript
-import 'survey-core/survey-core.min.css';
-import 'survey-creator-core/survey-creator-core.min.css';
-```
-
-The component can be customized to match your theme.
+The Form Builder uses inline styles for simplicity and portability. It features:
+- Clean, modern interface
+- Responsive design
+- Color-coded selected/unselected states
+- Intuitive controls
 
 ## Integration with Static Web Apps
 
-### Form Rendering
+The Form Builder is designed for static web applications:
 
-To render the forms created in the Form Builder on your static pages:
+1. **No Backend Required**: All form building happens client-side
+2. **JSON Export**: Forms are saved as JSON for easy storage
+3. **Portable**: The form structure can be exported and used elsewhere
+4. **Flexible**: Can be integrated with any form handling service
 
-1. **Export the JSON**: The form definition is stored as JSON
-2. **Add to Page**: Include the SurveyJS runtime library
-3. **Initialize Survey**: Create a survey instance with the JSON
-4. **Handle Submission**: Process form submissions via API or serverless functions
+### Form Submission
 
-### Example Form Rendering
+The Form Builder creates the form structure, but you'll need to handle submissions separately. Options include:
 
-```html
-<!-- Include SurveyJS runtime -->
-<script src="https://unpkg.com/survey-core"></script>
-<link href="https://unpkg.com/survey-core/survey-core.min.css" rel="stylesheet">
-
-<!-- Survey container -->
-<div id="surveyContainer"></div>
-
-<script>
-  // Your form JSON
-  const surveyJSON = { /* form definition */ };
-  
-  // Create survey
-  const survey = new Survey.Model(surveyJSON);
-  
-  // Handle completion
-  survey.onComplete.add((sender) => {
-    const results = sender.data;
-    // Send to API, log, or process
-    console.log(results);
-  });
-  
-  // Render
-  survey.render("surveyContainer");
-</script>
-```
-
-### Serverless Form Submission
-
-For Static Web Apps on Azure, you can use Azure Functions to handle form submissions:
-
-```typescript
-// Example Azure Function
-export async function handler(context, req) {
-  const formData = req.body;
-  
-  // Store in database, send email, etc.
-  await storeFormData(formData);
-  
-  return {
-    status: 200,
-    body: JSON.stringify({ success: true })
-  };
-}
-```
+- **Static Form Services**: Formspree, FormSubmit, or Basin
+- **Serverless Functions**: Azure Functions, AWS Lambda, or Netlify Functions
+- **Email Services**: SendGrid, Mailgun, or similar
+- **Custom API**: Your own backend service
 
 ## Best Practices
 
 ### Form Design
 
-- **Keep It Simple**: Fewer questions = higher completion rates
-- **Logical Flow**: Group related questions together
-- **Clear Labels**: Use descriptive question titles
-- **Required Fields**: Mark essential questions as required
-- **Progress Indication**: Use multiple pages for long forms
+1. **Keep it Simple**: Only ask for information you need
+2. **Clear Labels**: Use descriptive field labels
+3. **Helpful Placeholders**: Provide examples in placeholder text
+4. **Mark Required Fields**: Use the required checkbox for mandatory fields
+5. **Logical Order**: Arrange fields in a natural flow
+
+### Field Configuration
+
+- **Text Fields**: Use for short, single-line entries (name, city, etc.)
+- **Email Fields**: Always use for email addresses to get proper validation
+- **Text Areas**: Use for longer responses (comments, descriptions)
+- **Dropdowns**: Good for 4+ options; use radio buttons for 2-3 options
+- **Checkboxes**: For optional yes/no questions
+- **Radio Buttons**: For mandatory choice between options
 
 ### Performance
 
-- **Optimize Size**: Remove unused question types to reduce bundle size
-- **Lazy Loading**: Consider code-splitting for the Form Builder
-- **Caching**: Cache form definitions for faster loading
-
-### Accessibility
-
-- **Keyboard Navigation**: All form elements are keyboard accessible
-- **Screen Readers**: Questions include proper ARIA labels
-- **Color Contrast**: Ensure sufficient contrast for readability
+- The Form Builder is lightweight and fast
+- No external API calls or network dependencies
+- Renders efficiently even with many fields
 
 ## Troubleshooting
 
-### Build Issues
+### Form Not Appearing
 
-If you encounter build errors:
+If the Form Builder doesn't appear:
+1. Check that the component is properly registered in PageBuilder resolver
+2. Verify that all dependencies are installed
+3. Check browser console for errors
 
-1. **Check Dependencies**: Ensure all SurveyJS packages are installed
-   ```bash
-   npm install survey-core survey-creator-core survey-creator-react
-   ```
+### Fields Not Saving
 
-2. **Clear Cache**: Clear Vite cache and rebuild
-   ```bash
-   rm -rf node_modules/.vite
-   npm run build
-   ```
+Forms are saved as part of the page builder state. Make sure to:
+1. Save the page after making changes
+2. Check that the initial JSON is properly formatted
 
-### Runtime Issues
+### Styling Issues
 
-- **CSS Not Loading**: Verify CSS imports in FormBuilder.tsx
-- **Creator Not Rendering**: Check browser console for errors
-- **Props Not Updating**: Ensure initialJson is properly formatted
+The Form Builder uses inline styles, but you can:
+1. Wrap fields in custom containers with your styles
+2. Override styles through CSS if needed
+3. Customize the component directly in FormBuilder.tsx
 
 ## Future Enhancements
 
-Potential improvements for the Form Builder:
+Potential improvements for future versions:
 
-- **Custom Question Types**: Add domain-specific question types
-- **Theme Integration**: Better match with Fluent UI dark theme
-- **Form Templates**: Pre-built form templates for common use cases
-- **Export Options**: Export forms as HTML, PDF, or other formats
-- **Analytics Integration**: Track form completion rates and abandonment
-- **A/B Testing**: Test different form variations
+- **Validation Rules**: Add custom validation for fields
+- **Conditional Logic**: Show/hide fields based on other answers
+- **File Uploads**: Support for file upload fields
+- **Multi-Page Forms**: Break long forms into multiple pages
+- **Templates**: Pre-built form templates for common use cases
+- **Export Options**: Export forms as HTML/CSS for use outside the builder
+- **Custom Styling**: Theme customization options
+
+## Comparison to Previous Version
+
+This form builder replaces the previous SurveyJS Creator implementation:
+
+| Feature | SurveyJS Creator | Custom Form Builder |
+|---------|-----------------|---------------------|
+| License | Commercial | MIT (Free) |
+| Production Use | Requires purchase | Free |
+| Dependencies | Heavy (3+ packages) | Minimal (icons only) |
+| Complexity | Advanced features | Simple & focused |
+| Customization | Limited | Full control |
+| File Size | Large | Small |
 
 ## Resources
 
-- [SurveyJS Documentation](https://surveyjs.io/documentation)
-- [SurveyJS Creator Docs](https://surveyjs.io/survey-creator/documentation)
-- [SurveyJS Examples](https://surveyjs.io/examples)
-- [GitHub Repository](https://github.com/surveyjs/survey-creator)
+- [Craft.js Documentation](https://craft.js.org/)
+- [Lucide React Icons](https://lucide.dev/)
+- [React Documentation](https://react.dev/)
 
 ## License
 
-SurveyJS is licensed under the MIT License, making it free for commercial use.
+This Form Builder component is open source and available under the MIT License. It can be freely used in commercial and production environments without any licensing fees.
