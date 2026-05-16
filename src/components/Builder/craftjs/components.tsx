@@ -1,6 +1,9 @@
 import { useNode } from '@craftjs/core';
 import type { CSSProperties } from 'react';
 
+// Export FormBuilder from separate file
+export { FormBuilder } from './FormBuilder';
+
 // Text Component
 export const Text = ({ text, fontSize = '14px', color = '#000' }: { text?: string; fontSize?: string; color?: string }) => {
   const {
