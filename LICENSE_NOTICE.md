@@ -1,58 +1,47 @@
 # Third-Party License Notice
 
-## SurveyJS Creator
+## Form Builder
 
-This project uses SurveyJS Creator for the drag-and-drop form builder feature.
+This project uses a custom-built form builder component for the drag-and-drop form creation feature.
 
 ### License Information
 
-**SurveyJS Creator** (`survey-creator-core`, `survey-creator-react`) is licensed under a **Commercial License** by Devsoft Baltic OÜ.
+The Form Builder component is implemented as part of this project and is available under the same license as the project itself. It does not depend on any commercial or proprietary third-party libraries.
 
-- **License Type**: Commercial License
-- **License URL**: https://surveyjs.io/licensing
-- **GitHub**: https://github.com/surveyjs/survey-creator
+### Implementation
 
-### License Requirements
+The Form Builder is a simple, MIT-licensed component built with:
+- React
+- Craft.js (for drag-and-drop integration)
+- Lucide React (for icons, MIT License)
 
-SurveyJS Creator requires a commercial license for:
-- Commercial use
-- Production deployments
-- Redistribution
+All dependencies are fully open-source and free for commercial use.
 
-### Free Trial
+### Features
 
-SurveyJS provides a free trial for evaluation purposes. For production use, you must purchase a license from:
-- https://surveyjs.io/buy
+- **Add Fields**: Support for text, email, number, textarea, select, checkbox, and radio button fields
+- **Field Configuration**: Customize labels, placeholders, required status, and options
+- **Visual Preview**: See form fields as you build them
+- **Drag and Drop**: Reorder fields with up/down arrows
+- **No License Required**: Fully open-source, no commercial licenses needed
 
-### Alternative Options
+### Previously Used: SurveyJS Creator
 
-If you require a fully open-source (MIT) alternative, consider:
+**Note**: Previous versions of this project used SurveyJS Creator, which required a commercial license for production use. We have replaced it with a custom, fully open-source form builder to eliminate licensing requirements.
+
+If you need more advanced form building features, you may consider:
 
 1. **formBuilder.js** (MIT License)
    - https://github.com/kevinchappell/formBuilder
    - jQuery-based visual form builder
-   - MIT License
 
 2. **Formeo** (MIT License)
    - https://github.com/draggable/formeo
    - Modern form builder
-   - MIT License
 
 3. **react-form-builder2** (MIT License)
    - https://github.com/quri/react-form-builder
    - React-based form builder
-   - MIT License
-
-### Current Implementation
-
-The current implementation uses SurveyJS Creator as an **evaluation/trial** version. Before deploying to production, you must either:
-
-1. **Purchase a SurveyJS Creator license** from https://surveyjs.io/buy
-2. **Replace with an MIT-licensed alternative** (see options above)
-
-### SurveyJS Core Library (MIT)
-
-Note: The **survey-core** library (survey rendering engine) IS licensed under MIT and can be used freely for commercial projects. Only the **Creator** component (visual form builder) requires a commercial license.
 
 ---
 
