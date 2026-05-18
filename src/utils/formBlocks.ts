@@ -225,7 +225,7 @@ export function registerFormBlocks(editor: Editor): void {
     category: 'Forms',
     content: `<div style="${FIELD_WRAP}">
   <label style="${LABEL_STYLE}">Number</label>
-  <input type="number" name="numberField" placeholder="0" style="${INPUT_STYLE}" min="0" step="1" />
+  <input type="number" name="numberField" placeholder="Enter a number" style="${INPUT_STYLE}" step="1" />
 </div>`,
   });
 
