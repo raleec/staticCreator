@@ -2,217 +2,172 @@
 
 ## Overview
 
-The Form Builder is a custom-built, drag-and-drop form creation component integrated into the staticCreator page builder. It allows users to visually design forms by adding fields, configuring their properties, and previewing the result in real-time.
+StaticCreator integrates form creation directly into the GrapesJS page builder through custom form blocks. Forms are built by dragging and dropping pre-configured form field blocks onto the canvas and configuring their properties using the GrapesJS traits panel.
 
-**License**: Fully open-source (MIT) - No commercial license required for production use.
+**License**: Forms are built using GrapesJS (BSD-3-Clause license) with custom form blocks defined in the StaticCreator codebase (MIT license).
 
-## Why a Custom Form Builder?
+## How Form Building Works
 
-### Key Advantages
+Forms in StaticCreator are created using:
 
-- **✅ Perfect for Static Web Apps**: Fully client-side with no backend dependencies
-- **✅ Native React Integration**: Built specifically for React applications
-- **✅ MIT License**: Open source and free to use in production
-- **✅ No License Fees**: Unlike commercial alternatives, this is completely free
-- **✅ Craft.js Compatible**: Seamlessly integrates as a Craft.js component
-- **✅ No Server Required**: All form building happens in the browser
-- **✅ Lightweight**: Minimal dependencies, fast loading
+1. **GrapesJS Blocks** — Pre-built form components available in the "Forms" category
+2. **Component Types** — Custom GrapesJS component types that add REST API functionality
+3. **Traits Panel** — The GrapesJS settings panel for configuring form and field properties
 
-### Features
+## Available Form Blocks
 
-- **Visual Form Designer**: Drag-and-drop interface for building forms
-- **Multiple Field Types**: Text, email, number, textarea, dropdown, checkbox, radio buttons, and file uploads
-- **Field Configuration**: Customize labels, placeholders, required status, and options
-- **Validation Rules**: Add custom validation (min/max length, patterns, etc.) with error messages
-- **Conditional Logic**: Show/hide fields based on other field values
-- **Multi-Page Forms**: Break long forms into multiple pages with navigation
-- **Form Templates**: Pre-built templates for common use cases (contact, survey, registration, job application)
-- **Custom Styling**: Theme customization with colors and spacing options
-- **Visual Preview**: Real-time preview of the form as you build
-- **Field Reordering**: Move fields up and down with simple controls
-- **Responsive Design**: Forms work on desktop, tablet, and mobile
+### API Form Block
 
-## How to Use
+The **API Form** block creates a complete form with built-in REST API submission capabilities.
 
-### Adding a Form to Your Page
+**Features:**
+- Submits form data to any REST API endpoint
+- Supports POST, PUT, and PATCH methods
+- Optional MSAL Bearer token authentication
+- Metadata injection from page metadata
+- Success messages and redirect URLs
+- Pre-configured with name, email, and message fields
 
-1. Open the Page Builder for your site
-2. Click on "Form Builder" in the Blocks panel on the left
-3. The form builder will appear on the canvas with a default field
+**Configurable attributes** (via GrapesJS traits):
+- `data-api-url` — The API endpoint URL
+- `data-api-method` — HTTP method (POST, PUT, or PATCH)
+- `data-auth-header` — Include MSAL Bearer token (true/false)
+- `data-metadata-inject` — Comma-separated metadata keys to inject
+- `data-success-message` — Message shown on successful submission
+- `data-success-redirect` — Optional URL to redirect to on success
 
-### Building Your Form
+### Individual Form Field Blocks
 
-#### Adding Fields
+The following form field blocks are available in the **Forms** category:
 
-In the right panel, click on any field type to add it to your form:
-- **Text Input**: Single-line text entry
-- **Email**: Email address input with validation
-- **Number**: Numeric input field
-- **Text Area**: Multi-line text entry
-- **Dropdown**: Select from a list of options
-- **Checkbox**: Single yes/no option
-- **Radio Buttons**: Choose one from multiple options
-- **File Upload**: Allow users to upload files with configurable file type and size limits
+| Block | Description |
+|---|---|
+| **Text Input** | Single-line text field with label |
+| **Email Input** | Email field with validation and metadata pre-fill support |
+| **Number Input** | Numeric input with step control |
+| **Phone Input** | Telephone number field |
+| **Date Input** | Date picker field |
+| **Dropdown** | Select dropdown with configurable options |
+| **Text Area** | Multi-line text field |
+| **Checkbox** | Single checkbox with label |
+| **Radio Group** | Group of radio buttons for single selection |
+| **File Upload** | File upload field with size limit indicator |
+| **Hidden Field** | Hidden input field for metadata injection |
 
-#### Using Templates
+## Using Forms in Your Pages
 
-1. Click the "Templates" button in the top bar
-2. Choose from pre-built templates:
-   - **Contact Form**: Simple contact form with name, email, subject, and message
-   - **Survey Form**: Customer feedback survey with multiple pages
-   - **Registration Form**: User registration with personal details
-   - **Job Application**: Job application form with file uploads
-3. The template will replace your current form (save first if needed!)
+### Adding a Complete Form
 
-#### Multi-Page Forms
+1. Open the Page Builder
+2. Switch to the **Blocks** tab in the left panel
+3. Scroll to the **Forms** category
+4. Drag the **API Form** block onto the canvas
+5. Click on the form to select it
+6. Use the **Traits** panel on the right to configure the form settings:
+   - Set the **API Endpoint URL** to your REST API
+   - Choose the **HTTP Method** (POST, PUT, or PATCH)
+   - Enable **Include Bearer Token** if your API requires MSAL authentication
+   - Add metadata keys to **Inject Metadata Keys** (comma-separated)
+   - Customize the **Success Message**
+   - Optionally set a **Redirect URL on Success**
 
-1. Click "+ Add Page" in the top bar to create a new page
-2. Assign fields to different pages using the "Page" field in settings
-3. Navigate between pages using the arrow buttons
-4. Users will see page numbers and navigation when filling out the form
+### Adding Individual Form Fields
 
-#### Configuring Fields
+1. Drag individual form field blocks from the **Forms** category
+2. Drop them inside a form or anywhere on the page
+3. Click on each field to configure its properties via the **Traits** panel:
+   - Modify the `name` attribute
+   - Set placeholder text
+   - Add the `required` attribute if needed
 
-1. Click on any field in the preview to select it
-2. The right panel will show field settings:
-   - **Label**: The field name shown to users
-   - **Placeholder**: Hint text inside the field (for text inputs)
-   - **Required**: Mark the field as mandatory
-   - **Page**: Assign the field to a specific page
-   - **Options**: For dropdown and radio buttons, configure available choices
-   - **Accepted File Types**: For file uploads, specify allowed extensions (e.g., .pdf,.doc)
-   - **Max File Size**: For file uploads, set maximum size in MB
+### Pre-filling Fields from Metadata
 
-#### Adding Validation Rules
+Any input, select, or textarea field can be pre-filled with data from page metadata:
 
-For text, number, and textarea fields:
-1. Click "+ Add Validation Rule" in the field settings
-2. Choose validation type:
-   - **Min Length**: Minimum number of characters
-   - **Max Length**: Maximum number of characters
-   - **Min Value**: Minimum numeric value
-   - **Max Value**: Maximum numeric value
-   - **Pattern**: Regular expression pattern
-3. Enter the value and optional custom error message
-4. Add multiple validation rules if needed
+1. Select the field in the canvas
+2. In the **Traits** panel, find the **Prefill from Metadata Key** field
+3. Enter a metadata key using dot notation (e.g., `currentUser.mail`)
+4. The field will be automatically populated when the page loads
 
-#### Setting Up Conditional Logic
-
-Make fields appear/disappear based on other field values:
-1. Click "+ Add Condition" in the field settings
-2. Select which field to depend on
-3. Choose an operator (equals, not equals, contains, greater than, less than)
-4. Enter the comparison value
-5. The field will only show when all conditions are met
-
-#### Customizing Theme
-
-At the bottom of the right panel:
-1. **Primary Color**: Change the accent color used for buttons and highlights
-2. **Background Color**: Set the form background color
-3. **Spacing**: Choose between Compact, Normal, or Relaxed spacing
-4. Changes apply immediately to the preview
-
-### Form Data Storage
-
-Forms are stored as JSON data within the page builder state. The JSON structure now includes:
-
-```json
-{
-  "fields": [
-    {
-      "id": "1",
-      "type": "text",
-      "label": "Name",
-      "placeholder": "Enter your name",
-      "required": true,
-      "page": 1,
-      "validation": [
-        {
-          "type": "minLength",
-          "value": 3,
-          "message": "Name must be at least 3 characters"
-        }
-      ]
-    },
-    {
-      "id": "2",
-      "type": "email",
-      "label": "Email Address",
-      "placeholder": "your@email.com",
-      "required": true,
-      "page": 1
-    },
-    {
-      "id": "3",
-      "type": "file",
-      "label": "Resume",
-      "required": true,
-      "accept": ".pdf,.doc,.docx",
-      "maxFileSize": 5,
-      "page": 2,
-      "conditionalRules": [
-        {
-          "fieldId": "1",
-          "operator": "notEquals",
-          "value": ""
-        }
-      ]
-    }
-  ]
-}
+**Example:**
+```html
+<input type="email" name="email" data-metadata-prefill="currentUser.mail" />
 ```
 
-## Technical Details
+See [Forms & Data Integration](forms-and-data.md) for more details on metadata pre-fill and the runtime data model.
 
-### Implementation
+## Table Blocks
 
-The Form Builder is implemented as a Craft.js component that provides a split-pane interface:
+The **Tables** category includes three table variants:
 
-```typescript
-// File: src/components/Builder/craftjs/FormBuilder.tsx
-export const FormBuilder = ({ initialJson, height }: FormBuilderProps) => {
-  // Component manages form fields state
-  // Left pane: Form preview with field rendering
-  // Right pane: Field type selector and settings panel
-  // Integrates with Craft.js using useNode hook
-}
-```
+| Block | Description |
+|---|---|
+| **Basic Table** | Simple data table with headers and rows |
+| **Striped Table** | Table with alternating row colors for better readability |
+| **Responsive Table** | Table with horizontal scroll for narrow viewports |
 
-### Dependencies
+Tables can be used to display static data or populated dynamically with JavaScript.
 
-The Form Builder uses minimal dependencies:
-- `@craftjs/core`: For drag-and-drop integration
-- `lucide-react`: For UI icons (MIT License)
-- `react`: Core React library
+## Form Data Attributes Reference
 
-No commercial or proprietary libraries are required.
+### On `<form data-api-form="true">`
 
-### Styling
+| Attribute | Required | Description |
+|---|---|---|
+| `data-api-url` | ✅ | The REST API endpoint URL |
+| `data-api-method` | ✅ | HTTP method: `POST`, `PUT`, or `PATCH` |
+| `data-auth-header` | | `true` to include MSAL Bearer token; `false` otherwise |
+| `data-metadata-inject` | | Comma-separated metadata keys to add to request body |
+| `data-success-message` | | Alert message shown on successful submission |
+| `data-success-redirect` | | URL to navigate to instead of showing an alert |
 
-The Form Builder uses inline styles for simplicity and portability. It features:
-- Clean, modern interface
-- Responsive design
-- Color-coded selected/unselected states
-- Intuitive controls
+### On `<input>`, `<select>`, `<textarea>`
+
+| Attribute | Description |
+|---|---|
+| `data-metadata-prefill` | Dot-notation path into `__pageMetadata` to pre-fill the field |
+
+## Technical Implementation
+
+### Component Types
+
+StaticCreator registers a custom GrapesJS component type `rest-api-form` that:
+
+- Identifies `<form>` elements with `data-api-form="true"`
+- Exposes configurable traits for API settings
+- Handles form submission logic at runtime
+
+### Form Blocks Registration
+
+Form and table blocks are registered in `/src/utils/formBlocks.ts` using the `registerFormBlocks()` function, which:
+
+1. Adds the `rest-api-form` component type to GrapesJS
+2. Extends built-in input, select, and textarea components with the `data-metadata-prefill` trait
+3. Registers all form field blocks in the "Forms" category
+4. Registers all table blocks in the "Tables" category
+
+This function is called when the GrapesJS editor initializes in the PageBuilder component.
+
+### Runtime Form Submission
+
+When a form with `data-api-form="true"` is submitted in the generated page:
+
+1. Form data is collected from all named fields
+2. Metadata values specified in `data-metadata-inject` are merged into the payload
+3. An HTTP request is sent to `data-api-url` using the specified method
+4. If `data-auth-header="true"` and a user is signed in, an MSAL Bearer token is acquired and attached
+5. On success, either `data-success-message` is shown or the user is redirected to `data-success-redirect`
+6. On error, an error message is displayed
+
+This logic is embedded directly into each generated HTML page.
 
 ## Integration with Static Web Apps
 
-The Form Builder is designed for static web applications:
+Forms work seamlessly with:
 
-1. **No Backend Required**: All form building happens client-side
-2. **JSON Export**: Forms are saved as JSON for easy storage
-3. **Portable**: The form structure can be exported and used elsewhere
-4. **Flexible**: Can be integrated with any form handling service
-
-### Form Submission
-
-The Form Builder creates the form structure, but you'll need to handle submissions separately. Options include:
-
-- **Static Form Services**: Formspree, FormSubmit, or Basin
-- **Serverless Functions**: Azure Functions, AWS Lambda, or Netlify Functions
-- **Email Services**: SendGrid, Mailgun, or similar
-- **Custom API**: Your own backend service
+1. **Azure Static Web Apps** — Forms can submit to Azure Functions with MSAL authentication
+2. **Generic static hosting** — Forms can submit to any REST API without authentication
+3. **Third-party services** — Forms can integrate with services like Formspree, FormSubmit, or custom backends
 
 ## Best Practices
 
@@ -221,10 +176,10 @@ The Form Builder creates the form structure, but you'll need to handle submissio
 1. **Keep it Simple**: Only ask for information you need
 2. **Clear Labels**: Use descriptive field labels
 3. **Helpful Placeholders**: Provide examples in placeholder text
-4. **Mark Required Fields**: Use the required checkbox for mandatory fields
+4. **Mark Required Fields**: Use the `required` attribute for mandatory fields
 5. **Logical Order**: Arrange fields in a natural flow
 
-### Field Configuration
+### Field Selection
 
 - **Text Fields**: Use for short, single-line entries (name, city, etc.)
 - **Email Fields**: Always use for email addresses to get proper validation
@@ -232,96 +187,51 @@ The Form Builder creates the form structure, but you'll need to handle submissio
 - **Dropdowns**: Good for 4+ options; use radio buttons for 2-3 options
 - **Checkboxes**: For optional yes/no questions
 - **Radio Buttons**: For mandatory choice between options
-- **File Uploads**: For documents, images, or other files (configure file types and size limits)
+- **File Uploads**: For documents, images, or other files
 
-### Validation Best Practices
+### API Integration
 
-- Add validation to ensure data quality
-- Use clear, helpful error messages
-- Combine multiple validation rules when needed (e.g., min and max length)
-- Use pattern validation for complex formats (phone numbers, postal codes)
-
-### Multi-Page Form Tips
-
-- Group related fields on the same page
-- Keep pages short (5-7 fields maximum)
-- Use logical flow (personal info → details → confirmation)
-- Show progress indicators so users know how far they've progressed
-
-### Conditional Logic Tips
-
-- Use to reduce form complexity
-- Hide irrelevant questions based on previous answers
-- Keep conditions simple and clear
-- Test all condition paths to ensure they work correctly
-
-### Performance
-
-- The Form Builder is lightweight and fast
-- No external API calls or network dependencies
-- Renders efficiently even with many fields
+- Test your API endpoint URL before deploying
+- Use HTTPS for all API endpoints
+- Enable authentication only when your API requires it
+- Use metadata injection to add tracking fields (environment, app version, etc.)
 
 ## Troubleshooting
 
-### Form Not Appearing
+### Form Not Submitting
 
-If the Form Builder doesn't appear:
-1. Check that the component is properly registered in PageBuilder resolver
-2. Verify that all dependencies are installed
-3. Check browser console for errors
+If the form doesn't submit:
+1. Check the browser console for errors
+2. Verify the `data-api-url` is correct and accessible
+3. Check that the API supports the specified HTTP method
+4. If using authentication, ensure the user is signed in and the API accepts the MSAL token
 
-### Fields Not Saving
+### Fields Not Pre-filling
 
-Forms are saved as part of the page builder state. Make sure to:
-1. Save the page after making changes
-2. Check that the initial JSON is properly formatted
+If fields aren't pre-filling:
+1. Check that metadata keys are correctly spelled in `data-metadata-prefill`
+2. Verify that the metadata is available in `__pageMetadata` (check browser console)
+3. For Graph API queries, ensure the user is signed in
+4. For API preload queries, check the browser console for fetch errors
 
 ### Styling Issues
 
-The Form Builder uses inline styles, but you can:
-1. Wrap fields in custom containers with your styles
-2. Override styles through CSS if needed
-3. Customize the component directly in FormBuilder.tsx
-
-## Features Implemented
-
-All the features from the "Future Enhancements" section have been implemented:
-
-- ✅ **Validation Rules**: Add custom validation for fields (min/max length, patterns, etc.)
-- ✅ **Conditional Logic**: Show/hide fields based on other field values
-- ✅ **File Uploads**: Support for file upload fields with type and size restrictions
-- ✅ **Multi-Page Forms**: Break long forms into multiple pages with navigation
-- ✅ **Templates**: Pre-built form templates for common use cases
-- ✅ **Custom Styling**: Theme customization with colors and spacing options
-
-### Additional Improvements
-
-- Enhanced field settings panel with organized sections
-- Visual indicators for fields with validation or conditional logic
-- Real-time theme preview
-- Template selector with descriptions
-- Page management with navigation controls
-- Progress indicator for multi-page forms
-
-## Comparison to Previous Version
-
-This form builder replaces the previous SurveyJS Creator implementation:
-
-| Feature | SurveyJS Creator | Custom Form Builder |
-|---------|-----------------|---------------------|
-| License | Commercial | MIT (Free) |
-| Production Use | Requires purchase | Free |
-| Dependencies | Heavy (3+ packages) | Minimal (icons only) |
-| Complexity | Advanced features | Simple & focused |
-| Customization | Limited | Full control |
-| File Size | Large | Small |
+- Use the GrapesJS **Styles** tab to customize form appearance
+- Edit form field blocks directly in the canvas to adjust inline styles
+- Wrap forms in containers to control width and positioning
 
 ## Resources
 
-- [Craft.js Documentation](https://craft.js.org/)
-- [Lucide React Icons](https://lucide.dev/)
-- [React Documentation](https://react.dev/)
+- [GrapesJS Documentation](https://grapesjs.com/docs/)
+- [Forms & Data Integration](forms-and-data.md)
+- [Configuration Reference](configuration.md)
 
 ## License
+
+The form blocks are implemented using:
+- **GrapesJS** (BSD-3-Clause License)
+- **Custom form blocks** defined in StaticCreator source code (MIT License)
+
+No commercial licenses are required for production use.
 
 This Form Builder component is open source and available under the MIT License. It can be freely used in commercial and production environments without any licensing fees.
