@@ -46,11 +46,11 @@ Build pages visually, configure API integrations, and export a ready-to-deploy Z
 
 ## Prerequisites
 
-| Requirement | Version |
-|---|---|
-| Node.js | ≥ 20 |
-| npm | ≥ 10 |
-| Azure subscription | Required for deploying generated sites |
+| Requirement | Version | Notes |
+|---|---|---|
+| Node.js | ≥ 20 | |
+| npm | ≥ 10 | |
+| Azure subscription | | Required only for deploying Azure mode sites to Azure Static Web Apps |
 
 ---
 
