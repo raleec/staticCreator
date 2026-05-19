@@ -28,8 +28,8 @@ Build pages visually, configure API integrations, and export a ready-to-deploy Z
 
 ## Features
 
-- **Visual page builder** powered by [Craft.js](https://craft.js.org/) — drag and drop pre-built components to build pages visually with real-time preview
-- **Drag-and-drop form builder** powered by [SurveyJS](https://surveyjs.io/) — create sophisticated forms, surveys, and questionnaires with no code
+- **Visual page builder** powered by [GrapesJS](https://grapesjs.com/) — drag and drop pre-built components to build pages visually with real-time preview
+- **Form blocks** — create forms with pre-built input fields (text, email, number, textarea, dropdown, checkbox, radio, file upload, and hidden fields) and table blocks for data display
 - **Two deployment modes** — **Azure** (Azure Static Web Apps + MSAL authentication) or **Generic** (any static host, no Azure account needed)
 - **Azure AD / MSAL authentication** baked into every exported Azure-mode page
 - Support for **Azure Commercial, Government (MAG), and DoD** clouds
@@ -46,11 +46,11 @@ Build pages visually, configure API integrations, and export a ready-to-deploy Z
 
 ## Prerequisites
 
-| Requirement | Version |
-|---|---|
-| Node.js | ≥ 20 |
-| npm | ≥ 10 |
-| Azure subscription | Required for deploying generated sites |
+| Requirement | Version | Notes |
+|---|---|---|
+| Node.js | ≥ 20 | |
+| npm | ≥ 10 | |
+| Azure subscription | | Required only for deploying Azure mode sites to Azure Static Web Apps |
 
 ---
 
@@ -96,9 +96,11 @@ The landing screen where you manage sites and pages.
 
 ### Page Builder
 
-A full-screen Craft.js drag-and-drop editor for designing a page with visual components.
+A full-screen GrapesJS drag-and-drop editor for designing a page with visual components.
 
-- **Blocks panel** (left) — drag pre-built components (Section, Hero, Card, Button, etc.) onto the canvas
+- **Blocks tab** (left panel) — drag pre-built components (Section, Hero, Card, Button, Forms, Tables, etc.) onto the canvas
+- **Layers tab** (left panel) — view and manage the layer hierarchy of your page elements
+- **Styles tab** (left panel) — customize styling properties for selected elements
 - **Canvas** — visual editor where you can drag, drop, and arrange components
 - **Save** — persists the current page content to `localStorage`
 - **Preview** — toggles between edit mode and preview mode to see the final result
@@ -206,20 +208,27 @@ For Government or DoD clouds, register the app in the corresponding sovereign Az
 ## Building Pages
 
 1. Create a site, then click **Add Page** and give the page a name
-2. The page opens in the Craft.js drag-and-drop editor
-3. Use the **Blocks panel** on the left to drag components onto the canvas:
+2. The page opens in the GrapesJS drag-and-drop editor
+3. Use the **Blocks tab** on the left panel to drag components onto the canvas:
    - **Section** — basic content section with title and paragraph
-   - **Hero** — full-width hero banner with gradient background
-   - **Card** — card component with title, description, and link
-   - **Button** — call-to-action button
-   - **Container** — flexible container for grouping other components
-   - **2 Columns** — two-column layout grid
    - **Text** — simple text block
-   - **Form Builder** — drag-and-drop form designer powered by SurveyJS (see [Form Builder documentation](docs/form-builder.md))
-4. Click and drag components on the canvas to reposition them
-5. Toggle **Preview** mode to see the final rendered page
-6. Click **Config** (gear icon) to edit the site's configuration
-7. Click **Save** (or press **Ctrl+S** / **Cmd+S**) to persist your work
+   - **Image** — image placeholder
+   - **Button** — call-to-action button
+   - **2 Columns** / **3 Columns** — multi-column layout grids
+   - **Hero** — full-width hero banner with gradient background
+   - **Navbar** — navigation bar with links
+   - **Footer** — footer section
+   - **Card** — card component with title, description, and link
+   - **Divider** — horizontal divider line
+   - **Login Form** — basic login form template
+   - **Forms** category — API Form and individual form field blocks (see [Form Builder documentation](docs/form-builder.md))
+   - **Tables** category — Basic Table, Striped Table, Responsive Table
+4. Use the **Layers tab** to view and manage the component hierarchy
+5. Use the **Styles tab** to customize colors, spacing, typography, and decoration for selected elements
+6. Click and drag components on the canvas to reposition them
+7. Toggle **Preview** mode to see the final rendered page
+8. Click **Config** (gear icon) to edit the site's configuration
+9. Click **Save** (or press **Ctrl+S** / **Cmd+S**) to persist your work
 
 ### Form data attributes
 

@@ -1,47 +1,58 @@
 # Third-Party License Notice
 
-## Form Builder
+## Page Builder
 
-This project uses a custom-built form builder component for the drag-and-drop form creation feature.
+This project uses GrapesJS for the visual page builder with custom form and table blocks.
 
 ### License Information
 
-The Form Builder component is implemented as part of this project and is available under the same license as the project itself. It does not depend on any commercial or proprietary third-party libraries.
+**GrapesJS** (BSD-3-Clause License)
+- https://grapesjs.com/
+- Visual page builder library
+- Free for commercial use
+
+**GrapesJS Plugins Used:**
+- grapesjs-blocks-basic (BSD-3-Clause License)
+- grapesjs-preset-webpage (BSD-3-Clause License)
+
+### Custom Form and Table Blocks
+
+StaticCreator extends GrapesJS with custom form and table blocks defined in `/src/utils/formBlocks.ts`. These custom blocks are part of the StaticCreator codebase and are available under the same MIT license as the project.
+
+### Form Blocks (Forms Category)
+
+- **API Form** — Complete form with REST API submission
+- **Text Input** — Single-line text field
+- **Email Input** — Email field with validation
+- **Number Input** — Numeric input
+- **Phone Input** — Telephone field
+- **Date Input** — Date picker
+- **Dropdown** — Select dropdown
+- **Text Area** — Multi-line text field
+- **Checkbox** — Checkbox input
+- **Radio Group** — Radio button group
+- **File Upload** — File upload field
+- **Hidden Field** — Hidden input for metadata
+
+### Table Blocks (Tables Category)
+
+- **Basic Table** — Simple data table
+- **Striped Table** — Table with alternating row colors
+- **Responsive Table** — Horizontally scrollable table
 
 ### Implementation
 
-The Form Builder is a simple, MIT-licensed component built with:
-- React
-- Craft.js (for drag-and-drop integration)
-- Lucide React (for icons, MIT License)
+The page builder is implemented with:
+- **GrapesJS** (BSD-3-Clause License) — Core page builder
+- **React** (MIT License) — UI framework
+- **Fluent UI** (MIT License) — Microsoft design system
+- **Lucide React** (ISC License) — Icon library
 
 All dependencies are fully open-source and free for commercial use.
 
-### Features
+### Previously Used Libraries
 
-- **Add Fields**: Support for text, email, number, textarea, select, checkbox, and radio button fields
-- **Field Configuration**: Customize labels, placeholders, required status, and options
-- **Visual Preview**: See form fields as you build them
-- **Drag and Drop**: Reorder fields with up/down arrows
-- **No License Required**: Fully open-source, no commercial licenses needed
-
-### Previously Used: SurveyJS Creator
-
-**Note**: Previous versions of this project used SurveyJS Creator, which required a commercial license for production use. We have replaced it with a custom, fully open-source form builder to eliminate licensing requirements.
-
-If you need more advanced form building features, you may consider:
-
-1. **formBuilder.js** (MIT License)
-   - https://github.com/kevinchappell/formBuilder
-   - jQuery-based visual form builder
-
-2. **Formeo** (MIT License)
-   - https://github.com/draggable/formeo
-   - Modern form builder
-
-3. **react-form-builder2** (MIT License)
-   - https://github.com/quri/react-form-builder
-   - React-based form builder
+**Note**: Earlier documentation referenced Craft.js and SurveyJS, but these libraries were never actually used in production. The page builder has always been powered by GrapesJS with custom form blocks.
 
 ---
 

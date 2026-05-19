@@ -23,7 +23,7 @@ This guide covers how to deploy the static pages exported by StaticCreator to [A
 
 StaticCreator generates plain HTML/CSS/JS pages that include:
 
-- An embedded **MSAL Browser** bootstrap for Azure AD sign-in
+- An embedded **MSAL Browser** bootstrap for Azure AD sign-in (Azure mode only)
 - Your page's visual content (HTML + CSS from GrapesJS)
 - Runtime logic for form submissions, API preloads, and metadata pre-fill
 
