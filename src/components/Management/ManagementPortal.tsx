@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Archive,
   Code2,
+  LayoutTemplate,
 } from 'lucide-react';
 import {
   Button,
@@ -26,6 +27,7 @@ import {
 import { useSites } from '../../contexts/SiteContext';
 import ConfigModal from '../Configuration/ConfigModal';
 import ApiBuilderModal from '../ApiBuilder/ApiBuilderModal';
+import ExamplesModal from './ExamplesModal';
 import type { AzureConfig, Site } from '../../types';
 import { downloadSiteJson, downloadSiteZip, importSiteFromFile } from '../../utils/siteExport';
 import { CLOUD_LABELS } from '../../utils/azureRegions';
@@ -49,6 +51,7 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
 
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [apiBuilderOpen, setApiBuilderOpen] = useState(false);
+  const [examplesOpen, setExamplesOpen] = useState(false);
   const [editingSite, setEditingSite] = useState<Site | null>(null);
   const [expandedSiteId, setExpandedSiteId] = useState<string | null>(null);
   const [newPageName, setNewPageName] = useState('');
@@ -154,6 +157,13 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
             </Button>
             <Button
               appearance="subtle"
+              icon={<LayoutTemplate className="w-4 h-4" />}
+              onClick={() => setExamplesOpen(true)}
+            >
+              Examples
+            </Button>
+            <Button
+              appearance="subtle"
               icon={<Code2 className="w-4 h-4" />}
               onClick={() => setApiBuilderOpen(true)}
             >
@@ -173,7 +183,7 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-6 py-8">
         {sites.length === 0 ? (
-          <EmptyState onCreate={openCreate} />
+          <EmptyState onCreate={openCreate} onExamples={() => setExamplesOpen(true)} />
         ) : (
           <div className="space-y-4">
             {sites.map((site) => {
@@ -346,6 +356,14 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
         <ApiBuilderModal onClose={() => setApiBuilderOpen(false)} />
       )}
 
+      {/* Examples Modal */}
+      {examplesOpen && (
+        <ExamplesModal
+          onClose={() => setExamplesOpen(false)}
+          onLoad={(site) => importSite(site)}
+        />
+      )}
+
       {/* Delete Confirm Dialog */}
       <Dialog open={!!deleteConfirm} onOpenChange={(_, d) => { if (!d.open) setDeleteConfirm(null); }}>
         <DialogSurface>
@@ -373,22 +391,33 @@ export default function ManagementPortal({ onOpenBuilder }: ManagementPortalProp
   );
 }
 
-function EmptyState({ onCreate }: { onCreate: () => void }) {
+function EmptyState({ onCreate, onExamples }: { onCreate: () => void; onExamples: () => void }) {
   return (
     <div className="text-center py-24">
       <Globe className="w-16 h-16 text-gray-300 mx-auto mb-4" />
       <h2 className="text-xl font-semibold text-gray-600 mb-2">No sites yet</h2>
       <p className="text-gray-400 mb-6 max-w-sm mx-auto">
-        Create your first site to start building static web pages for Azure deployment.
+        Create your first site to start building static web pages for Azure deployment, or explore
+        one of our ready-made examples.
       </p>
-      <Button
-        appearance="primary"
-        icon={<Plus className="w-4 h-4" />}
-        onClick={onCreate}
-        size="large"
-      >
-        Create Your First Site
-      </Button>
+      <div className="flex items-center justify-center gap-3 flex-wrap">
+        <Button
+          appearance="primary"
+          icon={<Plus className="w-4 h-4" />}
+          onClick={onCreate}
+          size="large"
+        >
+          Create Your First Site
+        </Button>
+        <Button
+          appearance="outline"
+          icon={<LayoutTemplate className="w-4 h-4" />}
+          onClick={onExamples}
+          size="large"
+        >
+          Browse Examples
+        </Button>
+      </div>
     </div>
   );
 }
