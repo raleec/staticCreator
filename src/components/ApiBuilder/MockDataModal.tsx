@@ -40,7 +40,7 @@ export default function MockDataModal({ cfg, onClose }: MockDataModalProps) {
   const tableNames = Object.keys(mockData);
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/60" style={{ zIndex: 60 }}>
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col">
 
         {/* Header */}

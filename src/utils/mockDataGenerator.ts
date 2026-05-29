@@ -73,7 +73,7 @@ function generateMockValue(col: TableColumn, tableName: string, rowIdx: number):
     }
 
     case 'string': {
-      if (/^id$/.test(n)) return `${tableName.toUpperCase().slice(0, 3)}-${String(rowIdx + 1).padStart(4, '0')}`;
+      if (/^id$/.test(n)) return `${tableName.toUpperCase().padEnd(3, 'X').slice(0, 3)}-${String(rowIdx + 1).padStart(4, '0')}`;
       if (/email/.test(n)) return `user${rowIdx + 1}@example.com`;
       if (/phone|tel(ephone)?/.test(n)) return `+1-555-${String(1000 + rowIdx).slice(-4)}`;
       if (/url|website|link|href|src/.test(n)) return `https://example.com/${pluralCamel(tableName)}/${rowIdx + 1}`;
@@ -81,7 +81,7 @@ function generateMockValue(col: TableColumn, tableName: string, rowIdx: number):
       if (/colou?r/.test(n)) return ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange'][rowIdx % 6];
       if (/status|state/.test(n)) return ['Active', 'Inactive', 'Pending', 'Archived'][rowIdx % 4];
       if (/type|category|kind|class|group|tag/.test(n)) return `Category ${String.fromCharCode(65 + (rowIdx % 5))}`;
-      if (/code|sku|ref(erence)?|serial|barcode/.test(n)) return `${tableName.toUpperCase().slice(0, 3)}-${String(rowIdx + 1).padStart(4, '0')}`;
+      if (/code|sku|ref(erence)?|serial|barcode/.test(n)) return `${tableName.toUpperCase().padEnd(3, 'X').slice(0, 3)}-${String(rowIdx + 1).padStart(4, '0')}`;
       if (/slug|handle/.test(n)) return `${tableName.toLowerCase()}-${rowIdx + 1}`;
       if (/desc(ription)?|note|comment|remark|summar|detail|bio|content/.test(n)) {
         return `This is a sample description for ${tableName} ${rowIdx + 1}.`;
