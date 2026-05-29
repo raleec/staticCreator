@@ -289,6 +289,24 @@ For each configured service, clicking **Generate & Download** produces a ZIP arc
 4. Optionally use **Import from SQL** on any table to auto-populate columns from a pasted `CREATE TABLE` block
 5. Click **Generate & Download** to export the ZIP
 6. Use **Save Config** / **Load Config** to persist and reload API configurations as JSON
+7. Use **Mock Simulator** to generate sample data and a localStorage seed script for front-end development without a real backend
+
+### Mock Data Simulator
+
+Click **Mock Simulator** (in the API Builder header) to open the data simulation panel. It generates realistic sample records for every table and produces two downloadable artefacts:
+
+| Download | Description |
+|---|---|
+| **JSON** (`{serviceName}-mock-data.json`) | Raw mock records per table, ready to inspect or import |
+| **Seed Script** (`{serviceName}-mock-sim.js`) | Self-contained JS that patches `window.fetch` to serve data from `localStorage` |
+
+Include the seed script in your page before any API code:
+
+```html
+<script src="myservice-mock-sim.js"></script>
+```
+
+All five CRUD routes are supported (`/list`, `/:id GET`, `/create`, `/:id PUT`, `/:id DELETE`) and write operations are persisted back to `localStorage` automatically. See the [Mock Data Simulator section](docs/api-builder.md#mock-data-simulator) in the API Builder reference for full details.
 
 ### Column types
 

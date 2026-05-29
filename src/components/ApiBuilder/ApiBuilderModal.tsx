@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react';
-import { X, Plus, Trash2, Download, Upload, Save, ChevronDown, ChevronRight, FileText } from 'lucide-react';
+import { X, Plus, Trash2, Download, Upload, Save, ChevronDown, ChevronRight, FileText, Database } from 'lucide-react';
 import type { ApiBuilderConfig, TableDefinition, TableColumn, ColumnType } from '../../types';
 import { downloadApiBuilderZip, downloadApiConfigJson, importApiConfigFromFile } from '../../utils/apiBuilder';
 import { parseSqlTableDef } from '../../utils/sqlTableParser';
+import MockDataModal from './MockDataModal';
 
 interface ApiBuilderModalProps {
   onClose: () => void;
@@ -61,6 +62,8 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
   const [importError, setImportError] = useState<Record<number, string>>({});
   /** Ref for the hidden file input used to import a saved config. */
   const importConfigRef = useRef<HTMLInputElement>(null);
+  /** Whether the Mock Data Simulator modal is open. */
+  const [showMockModal, setShowMockModal] = useState(false);
 
   function clearError(key: string) {
     setErrors((prev) => {
@@ -282,6 +285,14 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
             >
               <Save className="w-4 h-4" />
               Save Config
+            </button>
+            <button
+              onClick={() => setShowMockModal(true)}
+              title="Generate mock data and localStorage seed script"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Database className="w-4 h-4" />
+              Mock Simulator
             </button>
             <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 text-gray-500" aria-label="Close">
               <X className="w-5 h-5" />
@@ -584,6 +595,19 @@ export default function ApiBuilderModal({ onClose }: ApiBuilderModalProps) {
           </button>
         </div>
       </div>
+
+      {/* Mock Data Simulator modal (nested) */}
+      {showMockModal && (
+        <MockDataModal
+          cfg={{
+            serviceName: serviceName.trim() || 'MyService',
+            version: version.trim() || 'v1',
+            baseUrl: baseUrl.trim() || 'https://api.example.com',
+            tables,
+          }}
+          onClose={() => setShowMockModal(false)}
+        />
+      )}
     </div>
   );
 }

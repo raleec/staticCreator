@@ -12,6 +12,7 @@ The API Builder generates a complete, contract-first Azure Functions API from a 
 - [Column Types](#column-types)
 - [SQL Import](#sql-import)
 - [Save and Load Configurations](#save-and-load-configurations)
+- [Mock Data Simulator](#mock-data-simulator)
 - [Generated Output](#generated-output)
 - [Generated Code Reference](#generated-code-reference)
 - [Connecting to SQL Server](#connecting-to-sql-server)
@@ -140,6 +141,97 @@ The saved format is an `ApiBuilderExportBundle`:
 ```
 
 Both the bundle format and a bare `ApiBuilderConfig` object are accepted on import for convenience.
+
+---
+
+## Mock Data Simulator
+
+The **Mock Simulator** button (next to "Save Config" in the header) generates realistic sample data for every table in the current configuration and produces a self-contained JavaScript file that lets a Static Web App run against a simulated backend with **no real API or database required**.
+
+### Why use it?
+
+| Scenario | Benefit |
+|---|---|
+| UI prototyping | Test forms, tables, and page layouts without a deployed backend |
+| Offline development | Work disconnected; all data is stored in the browser |
+| Demo environments | Ship a live, interactive demo without infrastructure |
+| Integration testing | Validate front-end API calls against a known dataset |
+
+### How it works
+
+1. Click **Mock Simulator** in the API Builder header.
+2. Use the **Rows per table** slider to choose how many sample records to generate (1–20, default 5).
+3. Switch between the **Data JSON** and **Seed Script** tabs to preview what will be generated.
+4. Download the output you need:
+
+| Button | File | Description |
+|---|---|---|
+| **Download JSON** | `{serviceName}-mock-data.json` | Raw mock records keyed by plural camelCase table name |
+| **Download Seed Script (.js)** | `{serviceName}-mock-sim.js` | Self-contained JS that seeds localStorage and patches `window.fetch` |
+
+### Using the seed script
+
+Add the downloaded script to your HTML page **before** any code that calls the API:
+
+```html
+<head>
+  <!-- Load the mock simulator first so fetch calls are intercepted -->
+  <script src="myservice-mock-sim.js"></script>
+  <script src="app.js"></script>
+</head>
+```
+
+Once the script is loaded it:
+
+1. **Seeds** `localStorage` with the generated records (only on the first page load — existing data is preserved across refreshes).
+2. **Intercepts** any `window.fetch` call whose URL starts with the configured base path and routes it through an in-memory CRUD implementation backed by `localStorage`.
+3. **Passes through** all other `fetch` calls to the real network unchanged.
+
+### Intercepted routes
+
+Replace `<table>` with the plural camelCase entity name (e.g. `Product` → `products`):
+
+| Method | Path | Response |
+|---|---|---|
+| `GET` | `…/<table>/list` | `{ items: [...], totalCount: N }` |
+| `GET` | `…/<table>/:id` | Single item or `404` |
+| `POST` | `…/<table>/create` | Created item (`201`) — auto-generates `id` if omitted |
+| `PUT` | `…/<table>/:id` | Replaced item (`200`) |
+| `DELETE` | `…/<table>/:id` | `204 No Content` |
+
+All write operations are immediately persisted back to `localStorage` so state survives page refreshes.
+
+### Resetting to the original seed data
+
+Open the browser DevTools console and run:
+
+```js
+localStorage.removeItem('mock__MyService'); // replace with your service name
+```
+
+Then reload the page — the original seed data will be restored automatically.
+
+### Mock data generation rules
+
+Values are generated deterministically based on column type and name:
+
+| Column hint (case-insensitive) | Generated value |
+|---|---|
+| `email` | `user1@example.com` |
+| `phone` / `tel` | `+1-555-0001` |
+| `url` / `website` / `link` | `https://example.com/…` |
+| `status` / `state` | Cycles through `Active`, `Inactive`, `Pending`, `Archived` |
+| `category` / `type` / `kind` | `Category A`, `Category B`, … |
+| `code` / `sku` / `reference` | `PRD-0001`, `PRD-0002`, … |
+| `price` / `cost` / `amount` | Realistic decimal values |
+| `name` / `title` / `label` | `{Table} Item 1`, `{Table} Item 2`, … |
+| `description` / `notes` | Full-sentence placeholder text |
+| `firstName` | Cycles through first-name list |
+| `lastName` | Cycles through surname list |
+| `datetime` columns | ISO-8601 dates spaced 13 days apart starting 2024-01-01 |
+| `boolean` columns | Alternates `true` / `false` |
+| `guid` columns | Deterministic UUID v4-like strings |
+| nullable columns | `null` returned for every 4th row |
 
 ---
 
