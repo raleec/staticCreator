@@ -104,7 +104,7 @@ If token acquisition fails the request still proceeds without the header.
 
 ## Microsoft Graph API Queries
 
-Configured on the **Data** tab of the site configuration.
+Configured on the **Forms** tab of the site configuration.
 
 Graph API queries run after MSAL successfully acquires an access token. They use the MSAL access token as a Bearer token and target the Graph API base URL for the configured cloud:
 

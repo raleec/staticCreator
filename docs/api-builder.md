@@ -218,16 +218,40 @@ Values are generated deterministically based on column type and name:
 | Column hint (case-insensitive) | Generated value |
 |---|---|
 | `email` | `user1@example.com` |
-| `phone` / `tel` | `+1-555-0001` |
-| `url` / `website` / `link` | `https://example.com/…` |
+| `phone` / `tel` / `telephone` | `+1-555-0001` |
+| `url` / `website` / `link` / `href` / `src` | `https://example.com/…` |
+| `image` / `photo` / `avatar` / `picture` / `img` | `https://picsum.photos/seed/…` |
 | `status` / `state` | Cycles through `Active`, `Inactive`, `Pending`, `Archived` |
-| `category` / `type` / `kind` | `Category A`, `Category B`, … |
-| `code` / `sku` / `reference` | `PRD-0001`, `PRD-0002`, … |
-| `price` / `cost` / `amount` | Realistic decimal values |
-| `name` / `title` / `label` | `{Table} Item 1`, `{Table} Item 2`, … |
-| `description` / `notes` | Full-sentence placeholder text |
-| `firstName` | Cycles through first-name list |
-| `lastName` | Cycles through surname list |
+| `category` / `type` / `kind` / `class` / `group` / `tag` | `Category A`, `Category B`, … |
+| `code` / `sku` / `reference` / `serial` / `barcode` | `PRD-0001`, `PRD-0002`, … |
+| `id` (exact, non-PK string) | `PRD-0001`, `PRD-0002`, … |
+| `slug` / `handle` | `tablename-1`, `tablename-2`, … |
+| `price` / `cost` / `amount` / `total` / `subtotal` / `fee` / `charge` | Realistic decimal values |
+| `rate` / `percent` / `pct` / `ratio` | Decimal ratio (0.05–0.95) |
+| `latitude` / `lat` | Decimal latitude near 40.71 |
+| `longitude` / `lon` / `lng` | Decimal longitude near -74.01 |
+| `weight` / `mass` | Decimal weight values |
+| `discount` | Decimal discount (0–20) |
+| `count` / `quantity` / `stock` / `qty` / `inventory` | Integer multiples of 10 |
+| `age` | Integer 25–64 |
+| `year` | Integer 2020–2025 |
+| `order` / `seq` / `number` / `num` / `index` / `rank` | Integer starting at 1001 |
+| `score` / `point` / `rating` | Integer 1–5 |
+| `size` / `width` / `height` / `length` | Integer multiples of 5 |
+| `name` / `title` / `label` / `heading` / `subject` | `{Table} Item 1`, `{Table} Item 2`, … |
+| `firstName` / `given name` | Cycles through first-name list |
+| `lastName` / `surname` / `family name` | Cycles through surname list |
+| `fullName` / `displayName` | Full name (`First Last`) |
+| `description` / `notes` / `comment` / `remark` / `summary` / `bio` / `content` | Full-sentence placeholder text |
+| `address` / `street` / `addr` | Street address (e.g. `123 Main Street`) |
+| `city` / `town` | Cycles through city names |
+| `state` / `province` / `region` | Two-letter state/province code |
+| `country` / `nation` | Country name |
+| `zip` / `postal` | Five-digit postal code |
+| `currency` | Currency code (USD, EUR, …) |
+| `language` / `locale` / `lang` | Locale code (en-US, fr-FR, …) |
+| `version` / `ver` / `revision` | Semantic version string (`1.0.0`, `2.0.0`, …) |
+| `hash` / `token` / `secret` / `key` / `password` | `<redacted>` |
 | `datetime` columns | ISO-8601 dates spaced 13 days apart starting 2024-01-01 |
 | `boolean` columns | Alternates `true` / `false` |
 | `guid` columns | Deterministic UUID v4-like strings |
